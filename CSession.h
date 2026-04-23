@@ -4,10 +4,7 @@
 #include <memory>
 #include <queue>
 
-namespace beast = boost::beast;   // from <boost/beast.hpp>
-namespace http = beast::http;     // from <boost/beast/http.hpp>
-namespace net = boost::asio;      // from <boost/asio.hpp>
-using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
+using tcp = boost::asio::ip::tcp;
 
 class SendNode;
 class RecvNode;
@@ -24,7 +21,8 @@ public:
     void setUserId(int user_uid);
     int getUserId();
     void start();
-    void send(char *msg, short max_length, short msgid);
+    // body_len 是包体长度，SendNode 内部会自动补齐协议包头。
+    void send(const char *msg, short body_len, short msgid);
     void send(std::string msg, short msgid);
     void close();
     std::shared_ptr<CSession> shared_self();

@@ -154,7 +154,7 @@ void CSession::AsyncReadBody(int total_len)
     });
 }
 
-void CSession::send(char *msg, short max_length, short msg_id)
+void CSession::send(const char *msg, short body_len, short msg_id)
 {
     std::lock_guard<std::mutex> lock(_send_lock);
     int send_que_size = _send_que.size();
@@ -164,7 +164,13 @@ void CSession::send(char *msg, short max_length, short msg_id)
         return;
     }
 
-    _send_que.push(std::make_shared<SendNode>(msg, max_length, msg_id));
+    if (body_len <= 0 || body_len > MAX_LENGTH)
+    {
+        std::cout << "invalid body_len, body_len is " << body_len << std::endl;
+        return;
+    }
+
+    _send_que.push(std::make_shared<SendNode>(msg, body_len, msg_id));
     if (_send_que.size() > 1)
     {
         return;
@@ -186,7 +192,7 @@ void CSession::send(std::string msg, short msgid)
         return;
     }
 
-    send(const_cast<char *>(msg.data()), static_cast<short>(msg.size()), msgid);
+    send(msg.data(), static_cast<short>(msg.size()), msgid);
 }
 
 void CSession::handleWrite(const boost::system::error_code &ec,

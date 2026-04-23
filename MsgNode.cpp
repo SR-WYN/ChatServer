@@ -5,7 +5,8 @@
 #include <cstring>
 #include <iostream>
 
-MsgNode::MsgNode(short max_len) : _cur_len(0), _total_len(max_len), _data(new char[max_len + 1]())
+MsgNode::MsgNode(short total_len)
+    : _cur_len(0), _total_len(total_len), _data(new char[total_len + 1]())
 {
     _data[_total_len] = '\0';
 }
@@ -47,18 +48,20 @@ short RecvNode::getMsgId()
     return _msg_id;
 }
 
-RecvNode::RecvNode(short max_len, short msg_id) : MsgNode(max_len), _msg_id(msg_id)
+RecvNode::RecvNode(short body_len, short msg_id) : MsgNode(body_len), _msg_id(msg_id)
 {
 }
 
-SendNode::SendNode(const char *msg, short max_len, short msg_id) : MsgNode(max_len), _msg_id(msg_id)
+SendNode::SendNode(const char *body, short body_len, short msg_id)
+    : MsgNode(static_cast<short>(HEAD_TOTAL_LEN + body_len)), _msg_id(msg_id)
 {
-    // 先发送id，转为网络字节序
-    short msg_id_host = boost::asio::detail::socket_ops::host_to_network_short(msg_id);
-    memcpy(_data, &msg_id_host, HEAD_ID_LEN);
-    // 再发送长度，转为网络字节序
-    short man_len_host = boost::asio::detail::socket_ops::host_to_network_short(max_len);
-    memcpy(_data + HEAD_ID_LEN, &man_len_host, HEAD_DATA_LEN);
-    // 再发送数据
-    memcpy(_data + HEAD_TOTAL_LEN, msg, _cur_len);
+    // 包头由消息 ID 和包体长度组成，均使用网络字节序。
+    short msg_id_net = boost::asio::detail::socket_ops::host_to_network_short(msg_id);
+    short body_len_net = boost::asio::detail::socket_ops::host_to_network_short(body_len);
+    memcpy(_data, &msg_id_net, HEAD_ID_LEN);
+    memcpy(_data + HEAD_ID_LEN, &body_len_net, HEAD_DATA_LEN);
+
+    // 包体紧跟固定长度包头之后。
+    memcpy(_data + HEAD_TOTAL_LEN, body, body_len);
+    _cur_len = _total_len;
 }
