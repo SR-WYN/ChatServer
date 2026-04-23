@@ -1,0 +1,36 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+
+# 使用自定义的换行风格
+BreakBeforeBraces: Custom
+BraceWrapping:
+  # 这里是核心：设置为 false，Lambda 的左括号就不会另起一行
+  BeforeLambdaBody: false
+  
+  # 以下是 Allman 风格的其他标准配置（为了保持你想要的其他大括号另起一行）
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeElse: true
+  BeforeCatch: true
+
+# 强制单行函数、控制语句换行
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: None
+
+# 针对 Qt 优化的细节
+AccessModifierOffset: -4
+ColumnLimit: 100
+
+# 强制模板声明后换行
+AlwaysBreakTemplateDeclarations: Yes
