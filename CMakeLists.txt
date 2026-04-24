@@ -66,13 +66,21 @@ file(GLOB_RECURSE USER_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h" "${CMAK
 
 # 你自己手动添加的业务逻辑源文件
 set(SOURCE_FILES
-    ChatServer.cpp
     AsioIOServicePool.cpp
-    ConfigMgr.cpp
     CServer.cpp
     CSession.cpp
+    ChatServer.cpp
+    ConfigMgr.cpp
     LogicSystem.cpp
     MsgNode.cpp
+    MySqlDao.cpp
+    MySqlMgr.cpp
+    MySqlPool.cpp
+    RedisConPool.cpp
+    RedisMgr.cpp
+    StatusConPool.cpp
+    StatusGrpcClient.cpp
+    utils.cpp
 )
 
 # --- 4. 定义生成目标 ---

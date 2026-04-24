@@ -1,9 +1,14 @@
 #include "LogicSystem.h"
 #include "CSession.h"
 #include "MsgNode.h"
+#include "StatusGrpcClient.h"
+#include "data.h"
+#include "utils.h"
 #include <json/json.h>
 #include <json/reader.h>
 #include <json/value.h>
+#include <memory>
+#include "MySqlMgr.h"
 
 LogicSystem::LogicSystem() : _b_stop(false)
 {
@@ -91,13 +96,46 @@ void LogicSystem::registerCallBacks()
 void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &msg_id,
                                const std::string &msg_data)
 {
-    (void)msg_id;
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
+    auto uid = root["uid"].asInt();
     std::cout << "user login uid is  " << root["uid"].asInt() << " user token  is "
               << root["token"].asString() << std::endl;
+    // 从状态服务器获取token匹配是否准确
+    auto rsp = StatusGrpcClient::getInstance().login(root["uid"].asInt(), root["token"].asString());
+    Json::Value result;
+    utils::Defer defer([this,&result,session]{
+        std::string return_str = result.toStyledString();
+        session->send(return_str,MSG_CHAT_LOGIN_RSP);
+    });
 
-    std::string return_str = root.toStyledString();
-    session->send(return_str, MSG_CHAT_LOGIN_RSP);
+    result["error"] = rsp.error();
+    if (rsp.error() != ErrorCodes::SUCCESS)
+    {
+        return;
+    }
+
+    //内存中查询用户信息
+    auto find_iter = _users.find(root["uid"].asInt());
+    std::shared_ptr<UserInfo> user_info = nullptr;
+    if (find_iter == _users.end())
+    {
+        //查不到就查询数据库
+        user_info = MySqlMgr::getInstance().getUserInfo(root["uid"].asInt());
+        if (user_info == nullptr)
+        {
+            result["error"] = ErrorCodes::UID_INVALID;
+            return;
+        }
+        _users[uid] = user_info;
+    }
+    else 
+    {
+        user_info = find_iter->second;
+    }
+
+    result["uid"] = uid;
+    result["token"] = rsp.token();
+    result["name"] = user_info->name;
 }
