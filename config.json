@@ -1,6 +1,6 @@
 {
   "SelfServer": {
-    "Port": "10000"
+    "Port": "8090"
   },
   "GateServer": {
     "Port": 7979,
@@ -32,6 +32,6 @@
   },
   "ChatServer2": {
     "Host": "127.0.0.1",
-    "Port": 8091
+    "Port": 8090
   }
 }

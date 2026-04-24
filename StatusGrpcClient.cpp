@@ -46,6 +46,11 @@ LoginRsp StatusGrpcClient::login(int uid, std::string token)
     request.set_uid(uid);
     request.set_token(token);
     auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        reply.set_error(ErrorCodes::RPCFAILED);
+        return reply;
+    }
     Status status = stub->Login(&context, request, &reply);
     utils::Defer defer([&stub, this]() {
         _pool->returnConnection(std::move(stub));

@@ -26,17 +26,20 @@ StatusConPool::~StatusConPool()
 std::unique_ptr<StatusService::Stub> StatusConPool::getConnection()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock,[this]{
-        if (_b_stop)
-        {
-            return true;
-        }
+    _cond.wait(lock, [this] {
+        return _b_stop || !_connections.empty();
     });
 
     if (_b_stop)
     {
         return nullptr;
     }
+
+    if (_connections.empty())
+    {
+        return nullptr;
+    }
+
     auto context = std::move(_connections.front());
     _connections.pop();
     return context;

@@ -135,6 +135,7 @@ void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &m
         user_info = find_iter->second;
     }
 
+    session->setUserId(uid);
     result["uid"] = uid;
     result["token"] = rsp.token();
     result["name"] = user_info->name;

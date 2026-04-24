@@ -14,7 +14,7 @@
 #include <mutex>
 
 CSession::CSession(boost::asio::io_context &io_context, CServer *server)
-    : _socket(io_context), _server(server), _b_close(false), _b_head_parse(false)
+    : _socket(io_context), _server(server), _b_close(false), _b_head_parse(false), _user_uid(0)
 {
     boost::uuids::uuid uuid = boost::uuids::random_generator()();
     _session_id = boost::uuids::to_string(uuid);
