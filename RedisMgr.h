@@ -11,6 +11,10 @@ class RedisMgr : public Singleton<RedisMgr>
     friend class Singleton<RedisMgr>;
 public:
     ~RedisMgr();
+    bool get(const std::string& key, std::string& value);
+    bool set(const std::string& key, const std::string& value);
+    bool hSet(const char* key, const char* hkey, const char* hvalue, size_t hvaluelen);
+    std::string hGet(const std::string& key, const std::string& hkey);
 private:
     RedisMgr();
     RedisMgr(const RedisMgr& src) = delete;

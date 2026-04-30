@@ -5,7 +5,6 @@
 #include <csignal>
 #include <mutex>
 #include <thread>
-using namespace std;
 bool bstop = false;
 std::condition_variable cond_quit;
 std::mutex mutex_quit;
@@ -28,6 +27,6 @@ int main()
     }
     catch (std::exception &e)
     {
-        std::cerr << "Exception: " << e.what() << endl;
+        std::cerr << "Exception: " << e.what() << std::endl;
     }
 }

@@ -34,4 +34,15 @@ enum MSG_IDS
 {
     MSG_CHAT_LOGIN = 2001, // 聊天登录
     MSG_CHAT_LOGIN_RSP = 2002, // 聊天登录响应
+    MSG_SEARCH_USER_REQ = 2003, // 搜索用户请求
+    MSG_SEARCH_USER_RSP = 2004, // 搜索用户响应
 };
+
+namespace RedisPrefix {
+    constexpr const char* CODE = "code_";
+    constexpr const char* USERIPPREFIX = "uip_";
+    constexpr const char* USERTOKENPREFIX = "utoken_";
+    constexpr const char* IPCOUNTPREFIX = "ipcount_";
+    constexpr const char* USER_BASE_INFO = "ubaseinfo_";
+    constexpr const char* LOGIN_COUNT = "logincount";
+}

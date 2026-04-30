@@ -81,6 +81,9 @@ set(SOURCE_FILES
     StatusConPool.cpp
     StatusGrpcClient.cpp
     utils.cpp
+    ChatGrpcClient.cpp
+    ChatConPool.cpp
+    UserMgr.cpp
 )
 
 # --- 4. 定义生成目标 ---
