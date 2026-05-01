@@ -32,10 +32,19 @@ enum ErrorCodes
 
 enum MSG_IDS
 {
-    MSG_CHAT_LOGIN = 2001, // 聊天登录
-    MSG_CHAT_LOGIN_RSP = 2002, // 聊天登录响应
-    MSG_SEARCH_USER_REQ = 2003, // 搜索用户请求
-    MSG_SEARCH_USER_RSP = 2004, // 搜索用户响应
+    MSG_CHAT_LOGIN = 2001,               // 聊天登录
+    MSG_CHAT_LOGIN_RSP = 2002,           // 聊天登录响应
+    MSG_SEARCH_USER_REQ = 2003,          // 搜索用户请求
+    MSG_SEARCH_USER_RSP = 2004,          // 搜索用户响应
+    MSG_ADD_FRIEND_REQ = 2005,           // 添加好友请求
+    MSG_ADD_FRIEND_RSP = 2006,           // 添加好友响应
+    MSG_NOTIFY_ADDFRIEND_REQ = 2007,     // 通知添加好友请求
+    MSG_AUTH_FRIEND_REQ = 2008,          // 认证好友请求
+    MSG_AUTH_FRIEND_RSP = 2009,          // 认证好友响应
+    MSG_NOTIFY_AUTH_FRIEND_REQ = 2010,   // 通知认证好友请求
+    MSG_TEXT_CHAT_MSG_REQ = 2011,        // 文本聊天消息请求
+    MSG_TEXT_CHAT_MSG_RSP = 2012,        // 文本聊天消息响应
+    MSG_NOTIFY_TEXT_CHAT_MSG_REQ = 2013, // 通知文本聊天消息请求
 };
 
 namespace RedisPrefix {
@@ -44,5 +53,6 @@ namespace RedisPrefix {
     constexpr const char* USERTOKENPREFIX = "utoken_";
     constexpr const char* IPCOUNTPREFIX = "ipcount_";
     constexpr const char* USER_BASE_INFO = "ubaseinfo_";
+    constexpr const char* USER_NAME_INFO = "unameinfo_";
     constexpr const char* LOGIN_COUNT = "logincount";
 }
