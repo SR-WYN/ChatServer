@@ -3,6 +3,9 @@
 #include "LogicSystem.h"
 #include "MsgNode.h"
 #include "const.h"
+#include "ConfigMgr.h"
+#include "RedisMgr.h"
+#include "UserMgr.h"
 #include <boost/asio/detail/socket_ops.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -226,6 +229,31 @@ void CSession::handleWrite(const boost::system::error_code &ec,
 
 void CSession::close()
 {
+    if (_b_close)
+    {
+        return;
+    }
+
+    if (_user_uid > 0)
+    {
+        auto server_name = ConfigMgr::getInstance()["SelfServer"]["Name"];
+        auto rd_res = RedisMgr::getInstance().hGet(RedisPrefix::LOGIN_COUNT, server_name);
+        int count = 0;
+        if (!rd_res.empty())
+        {
+            count = std::stoi(rd_res);
+        }
+        if (count > 0)
+        {
+            --count;
+        }
+        const auto count_str = std::to_string(count);
+        RedisMgr::getInstance().hSet(
+            RedisPrefix::LOGIN_COUNT, server_name.c_str(), count_str.c_str(), count_str.size());
+        UserMgr::getInstance().RemoveUserSession(_user_uid);
+        _user_uid = 0;
+    }
+
     _socket.close();
     _b_close = true;
 }
