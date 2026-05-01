@@ -84,6 +84,7 @@ set(SOURCE_FILES
     ChatGrpcClient.cpp
     ChatConPool.cpp
     UserMgr.cpp
+    ChatServiceImpl.cpp
 )
 
 # --- 4. 定义生成目标 ---

@@ -1,6 +1,7 @@
 #include "RedisMgr.h"
 #include "ConfigMgr.h"
 #include "RedisConPool.h"
+#include "utils.h"
 #include <string.h>
 
 RedisMgr::RedisMgr()
@@ -148,4 +149,41 @@ std::string RedisMgr::hGet(const std::string& key, const std::string& hkey)
     std::cout << "Execut command [ HGet " << key << " " << hkey << " ] success ! " << std::endl;
     _con_pool->returnConnection(connect);
     return value;
+}
+
+bool RedisMgr::hSet(const std::string& key, const std::string& hkey, const std::string& value)
+{
+    return hSet(key.c_str(), hkey.c_str(), value.c_str(), value.length());
+}
+
+void RedisMgr::close()
+{
+    _con_pool->close();
+}
+
+bool RedisMgr::hDel(const std::string& key, const std::string& filed)
+{
+    auto connect = _con_pool->getConnection();
+    if (connect == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([&connect,this](){
+        _con_pool->returnConnection(connect);
+    });
+
+    redisReply *reply = (redisReply*)redisCommand(connect, "HDEL %s %s", key.c_str(), filed.c_str());
+    if (reply == nullptr)
+    {
+        std::cerr << "HDEL " << key << " " << filed << " failed" << std::endl;
+        return false;
+    }
+
+    bool success = false;
+    if (reply->type == REDIS_REPLY_INTEGER)
+    {
+        success = reply->integer > 0;
+    }
+    freeReplyObject(reply);
+    return success;
 }
