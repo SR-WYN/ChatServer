@@ -2,6 +2,9 @@
 #include "ConfigMgr.h"
 #include <memory>
 #include "ChatConPool.h"
+#include "utils.h"
+#include "const.h"
+#include <json/json.h>
 
 ChatGrpcClient::ChatGrpcClient()
 {
@@ -31,7 +34,30 @@ ChatGrpcClient::~ChatGrpcClient()
 
 AddFriendRsp ChatGrpcClient::NotifyAddFriend(std::string server_ip,const AddFriendReq& req)
 {
-    //todo
+    AddFriendRsp rsp;
+    utils::Defer defer([&rsp, &req]() {
+        rsp.set_error(ErrorCodes::SUCCESS);
+        rsp.set_applyuid(req.applyuid());
+        rsp.set_touid(req.touid());
+    });
+    auto find_iter = _pools.find(server_ip);
+    if (find_iter == _pools.end())
+    {
+        return rsp;
+    }
+    auto &pool = find_iter->second;
+    ClientContext context;
+    auto stub = pool->getConnection();
+    Status status = stub->NotifyAddFriend(&context, req, &rsp);
+    utils::Defer defercon([&stub, this, &pool]() {
+        pool->returnConnection(std::move(stub));
+    });
+    if (!status.ok())
+    {
+        rsp.set_error(ErrorCodes::RPCFAILED);
+        return rsp;
+    }
+    return rsp;
 }
 
 AuthFriendRsp ChatGrpcClient::NotifyAuthFriend(std::string server_ip,const AuthFriendReq& req)
