@@ -159,7 +159,22 @@ void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &m
     return_value["icon"] = user_info->icon;
 
     // 从数据库获取申请列表
-
+    std::vector<std::shared_ptr<ApplyInfo>> apply_list;
+    bool b_apply = getFriendApplyInfo(uid,apply_list);
+    if (b_apply)
+    {
+        for (auto& apply : apply_list)
+        {
+            Json::Value obj;
+            obj["name"] = apply->_name;
+            obj["uid"] = apply->_uid;
+            obj["icon"] = apply->_icon;
+            obj["nick"] = apply->_nick;
+            obj["sex"] = apply->_sex;
+            obj["status"] = apply->_status;
+            return_value["apply_list"].append(obj);
+        }
+    }
     // 获取好友列表
 
     auto server_name = ConfigMgr::getInstance()["SelfServer"]["Name"];
@@ -464,4 +479,10 @@ void LogicSystem::addFriendHandler(std::shared_ptr<CSession> session, const shor
     }
     //发送请求到对方服务器
     ChatGrpcClient::getInstance().NotifyAddFriend(to_ip_value, add_req);
+}
+
+bool LogicSystem::getFriendApplyInfo(int touid,std::vector<std::shared_ptr<ApplyInfo>> &list)
+{
+    //从数据库获取申请列表
+    return MySqlMgr::getInstance().getApplyList(touid,list);
 }

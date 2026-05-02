@@ -11,6 +11,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 
 class CSession;
 class LogicNode;
@@ -37,6 +38,7 @@ private:
     void addFriendHandler(std::shared_ptr<CSession>, const short &msg_id,
                           const std::string &msg_data);
     bool getBaseInfo(const std::string &base_key, int uid, std::shared_ptr<UserInfo> user_info);
+    bool getFriendApplyInfo(int touid,std::vector<std::shared_ptr<ApplyInfo>> &list);
     void getUserByUid(const std::string &uid_str, Json::Value &result);
     void getUserByName(const std::string &name_str, Json::Value &result);
     std::thread _worker_thread;

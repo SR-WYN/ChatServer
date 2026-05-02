@@ -22,3 +22,8 @@ bool MySqlMgr::addFriendApply(const int& uid,const int& touid)
 {
     return _dao.addFriendApply(uid,touid);
 }
+
+bool MySqlMgr::getApplyList(const int& touid,std::vector<std::shared_ptr<ApplyInfo>> &list,int begin,int limit)
+{
+    return _dao.getApplyList(touid,list,begin,limit);
+}
