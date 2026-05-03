@@ -27,3 +27,13 @@ bool MySqlMgr::getApplyList(const int& touid,std::vector<std::shared_ptr<ApplyIn
 {
     return _dao.getApplyList(touid,list,begin,limit);
 }
+
+bool MySqlMgr::authFriendApply(const int& uid,const int& touid)
+{
+    return _dao.authFriendApply(uid,touid);
+}
+
+bool MySqlMgr::addFriend(const int& uid,const int& touid,std::string alias_name)
+{
+    return _dao.addFriend(uid,touid,alias_name);
+}

@@ -6,6 +6,7 @@
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
 #include <iostream>
+#include <memory>
 
 MySqlDao::MySqlDao()
 {
@@ -48,6 +49,11 @@ std::shared_ptr<UserInfo> MySqlDao::getUserInfo(int uid)
             user_ptr->pwd = res->getString("pwd");
             user_ptr->email = res->getString("email");
             user_ptr->name = res->getString("name");
+            user_ptr->nick = res->getString("nick");
+            user_ptr->desc = res->getString("desc");
+            user_ptr->sex = res->getInt("sex");
+            user_ptr->icon = res->getString("icon");
+            user_ptr->back = res->getString("back");
             user_ptr->uid = uid;
             break;
         }
@@ -122,8 +128,8 @@ bool MySqlDao::addFriendApply(const int &uid, const int &touid)
             "ON DUPLICATE KEY UPDATE from_uid = from_uid, to_uid = to_uid"));
         pstmt->setInt(1, uid);
         pstmt->setInt(2, touid);
-        
-        //执行插入
+
+        // 执行插入
         int row_affected = pstmt->executeUpdate();
         if (row_affected < 0)
         {
@@ -144,7 +150,8 @@ bool MySqlDao::addFriendApply(const int &uid, const int &touid)
     return true;
 }
 
-bool MySqlDao::getApplyList(const int& touid,std::vector<std::shared_ptr<ApplyInfo>> &list,int begin,int limit)
+bool MySqlDao::getApplyList(const int &touid, std::vector<std::shared_ptr<ApplyInfo>> &list,
+                            int begin, int limit)
 {
     auto con = _pool->getConnection();
     if (con == nullptr)
@@ -152,7 +159,7 @@ bool MySqlDao::getApplyList(const int& touid,std::vector<std::shared_ptr<ApplyIn
         return false;
     }
 
-    utils::Defer defer ([this,&con](){
+    utils::Defer defer([this, &con]() {
         _pool->returnConnection(std::move(con));
     });
 
@@ -184,4 +191,69 @@ bool MySqlDao::getApplyList(const int& touid,std::vector<std::shared_ptr<ApplyIn
         std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
         return false;
     }
+}
+
+bool MySqlDao::authFriendApply(const int &uid, const int &touid)
+{
+    auto con = _pool->getConnection();
+    if (con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con] {
+        _pool->returnConnection(std::move(con));
+    });
+    try
+    {
+        std::unique_ptr<sql::PreparedStatement> pstmt(
+            con->_con->prepareStatement("UPDATE friend_apply SET status = 1 "
+                                        "WHERE from_uid = ? AND to_uid = ?"));
+        pstmt->setInt(1, uid);
+        pstmt->setInt(2, touid);
+        int row_affected = pstmt->executeUpdate();
+        return row_affected > 0;
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool MySqlDao::addFriend(const int& uid,const int& touid,std::string alias_name)
+{
+    auto con = _pool->getConnection();
+    if (con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con] {
+        _pool->returnConnection(std::move(con));
+    });
+    try
+    {
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id,friend_id,alias_name) values (?,?,?)"));
+        pstmt->setInt(1,uid);
+        pstmt->setInt(2,touid);
+        pstmt->setString(3,alias_name);
+        int row_affected = pstmt->executeUpdate();
+
+        std::unique_ptr<sql::PreparedStatement> pstmt2(con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id,friend_id,alias_name) values (?,?,?)"));
+        pstmt2->setInt(1,touid);
+        pstmt2->setInt(2,uid);
+        pstmt2->setString(3,alias_name);
+        int row_affected2 = pstmt2->executeUpdate();
+        return row_affected > 0 || row_affected2 > 0;
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return false;
+    }
+    return true;
 }
