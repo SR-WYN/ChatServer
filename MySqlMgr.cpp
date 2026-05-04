@@ -37,3 +37,8 @@ bool MySqlMgr::addFriend(const int& uid,const int& touid,std::string alias_name)
 {
     return _dao.addFriend(uid,touid,alias_name);
 }
+
+bool MySqlMgr::getFriendList(int uid, std::vector<std::shared_ptr<UserInfo>> &list)
+{
+    return _dao.getFriendList(uid,list);
+}

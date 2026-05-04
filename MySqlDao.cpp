@@ -257,3 +257,44 @@ bool MySqlDao::addFriend(const int& uid,const int& touid,std::string alias_name)
     }
     return true;
 }
+
+bool MySqlDao::getFriendList(int uid, std::vector<std::shared_ptr<UserInfo>> &list)
+{
+    auto con = _pool->getConnection();
+    if (con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con] {
+        _pool->returnConnection(std::move(con));
+    });
+
+    try
+    {
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("SELECT * FROM friend WHERE self_id = ?"));
+        pstmt->setInt(1, uid);
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        while (res->next())
+        {
+            std::shared_ptr<UserInfo> user_ptr = std::make_shared<UserInfo>();
+            user_ptr->uid = res->getInt("friend_id");
+            user_ptr->name = res->getString("alias_name");
+            auto user_info = getUserInfo(user_ptr->uid);
+            if (user_info == nullptr)
+            {
+                continue;
+            }
+            user_info->nick = user_ptr->name;
+            list.push_back(user_ptr);
+        }
+        return true;
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return false;
+    }
+    return true;
+}

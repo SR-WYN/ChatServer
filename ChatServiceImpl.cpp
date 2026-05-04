@@ -54,7 +54,7 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext *context, const AuthFrien
     auto fromuid = request->fromuid();
     auto session = UserMgr::getInstance().getSession(touid);
 
-    utils::Defer defef([request, reply]() {
+    utils::Defer defer([request, reply]() {
         reply->set_error(ErrorCodes::SUCCESS);
         reply->set_fromuid(request->fromuid());
         reply->set_touid(request->touid());
@@ -94,6 +94,7 @@ Status ChatServiceImpl::NotifyTextChatMsg(ServerContext *context, const TextChat
                                           TextChatMsgRsp *reply)
 {
     // todo
+    return Status::OK;
 }
 
 bool ChatServiceImpl::getBaseInfo(std::string base_key, int uid,

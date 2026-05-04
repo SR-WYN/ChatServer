@@ -180,7 +180,20 @@ void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &m
         }
     }
     // 获取好友列表
-
+    std::vector<std::shared_ptr<UserInfo>> friend_list;
+    bool b_friend_list = getFriendList(uid,friend_list);
+    for (auto &friend_element:friend_list)
+    {
+        Json::Value obj;
+        obj["name"] = friend_element->name;
+        obj["uid"] = friend_element->uid;
+        obj["icon"] = friend_element->icon;
+        obj["nick"] = friend_element->nick;
+        obj["sex"] = friend_element->sex;
+        obj["desc"] = friend_element->desc;
+        obj["back"] = friend_element->back;
+        return_value["friend_list"].append(obj);
+    }
     auto server_name = ConfigMgr::getInstance()["SelfServer"]["Name"];
     // 将登录数量增加
     auto rd_res = RedisMgr::getInstance().hGet(RedisPrefix::LOGIN_COUNT, server_name);
@@ -586,4 +599,9 @@ void LogicSystem::authFriendHandler(std::shared_ptr<CSession> session, const sho
     auth_req.set_touid(applicant_uid);
 
     ChatGrpcClient::getInstance().NotifyAuthFriend(to_ip_value, auth_req);
+}
+
+bool LogicSystem::getFriendList(int uid, std::vector<std::shared_ptr<UserInfo>> &list)
+{
+    return MySqlMgr::getInstance().getFriendList(uid,list);
 }
