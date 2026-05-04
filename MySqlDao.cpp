@@ -38,23 +38,28 @@ std::shared_ptr<UserInfo> MySqlDao::getUserInfo(int uid)
 
     try
     {
-        std::unique_ptr<sql::PreparedStatement> pstmt(
-            con->_con->prepareStatement("SELECT * FROM user WHERE uid = ?"));
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
+            "SELECT uid, name, nick, `desc`, sex, icon, email, pwd FROM user WHERE uid = ?"));
         pstmt->setInt(1, uid);
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
         std::shared_ptr<UserInfo> user_ptr = nullptr;
         while (res->next())
         {
             user_ptr.reset(new UserInfo);
+            user_ptr->uid = res->getInt("uid");
             user_ptr->pwd = res->getString("pwd");
             user_ptr->email = res->getString("email");
             user_ptr->name = res->getString("name");
             user_ptr->nick = res->getString("nick");
+            if (user_ptr->nick.empty())
+            {
+                user_ptr->nick = user_ptr->name;
+            }
             user_ptr->desc = res->getString("desc");
             user_ptr->sex = res->getInt("sex");
             user_ptr->icon = res->getString("icon");
-            user_ptr->back = res->getString("back");
-            user_ptr->uid = uid;
+            user_ptr->back.clear();
+            user_ptr->alias_name.clear();
             break;
         }
         return user_ptr;
@@ -82,21 +87,28 @@ std::shared_ptr<UserInfo> MySqlDao::getUserInfo(std::string name)
 
     try
     {
-        std::unique_ptr<sql::PreparedStatement> pstmt(
-            con->_con->prepareStatement("SELECT * FROM user WHERE name = ?"));
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
+            "SELECT uid, name, nick, `desc`, sex, icon, email, pwd FROM user WHERE name = ?"));
         pstmt->setString(1, name);
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
         std::shared_ptr<UserInfo> user_ptr = nullptr;
         while (res->next())
         {
             user_ptr.reset(new UserInfo);
+            user_ptr->uid = res->getInt("uid");
             user_ptr->pwd = res->getString("pwd");
             user_ptr->email = res->getString("email");
             user_ptr->name = res->getString("name");
-            user_ptr->uid = res->getInt("uid");
-            user_ptr->nick = res->getString("nick");
             user_ptr->desc = res->getString("desc");
             user_ptr->sex = res->getInt("sex");
+            user_ptr->icon = res->getString("icon");
+            user_ptr->nick = res->getString("nick");
+            if (user_ptr->nick.empty())
+            {
+                user_ptr->nick = user_ptr->name;
+            }
+            user_ptr->back.clear();
+            user_ptr->alias_name.clear();
             break;
         }
         return user_ptr;
@@ -110,7 +122,7 @@ std::shared_ptr<UserInfo> MySqlDao::getUserInfo(std::string name)
     }
 }
 
-bool MySqlDao::addFriendApply(const int &uid, const int &touid)
+bool MySqlDao::addFriendApply(const int &uid, const int &touid, const std::string &apply_alias_name)
 {
     auto con = _pool->getConnection();
     if (con == nullptr)
@@ -124,10 +136,11 @@ bool MySqlDao::addFriendApply(const int &uid, const int &touid)
     try
     {
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-            "INSERT INTO friend_apply (from_uid,to_uid) values (?,?)"
-            "ON DUPLICATE KEY UPDATE from_uid = from_uid, to_uid = to_uid"));
+            "INSERT INTO friend_apply (from_uid,to_uid,alias_name) VALUES (?,?,?)"
+            " ON DUPLICATE KEY UPDATE alias_name = VALUES(alias_name)"));
         pstmt->setInt(1, uid);
         pstmt->setInt(2, touid);
+        pstmt->setString(3, apply_alias_name);
 
         // 执行插入
         int row_affected = pstmt->executeUpdate();
@@ -166,8 +179,8 @@ bool MySqlDao::getApplyList(const int &touid, std::vector<std::shared_ptr<ApplyI
     try
     {
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-            "SELECT apply.from_uid, apply.status, user.name, "
-            "user.nick, user.sex FROM friend_apply AS apply JOIN user ON apply.from_uid = user.uid "
+            "SELECT apply.from_uid, apply.status, apply.alias_name, user.name, user.nick, user.sex "
+            "FROM friend_apply AS apply JOIN user ON apply.from_uid = user.uid "
             "WHERE apply.to_uid = ? AND apply.id > ? ORDER BY apply.id ASC LIMIT ?"));
         pstmt->setInt(1, touid);
         pstmt->setInt(2, begin);
@@ -179,8 +192,14 @@ bool MySqlDao::getApplyList(const int &touid, std::vector<std::shared_ptr<ApplyI
             int status = res->getInt("status");
             std::string name = res->getString("name");
             std::string nick = res->getString("nick");
+            if (nick.empty())
+            {
+                nick = name;
+            }
             int sex = res->getInt("sex");
-            list.push_back(std::make_shared<ApplyInfo>(from_uid, name, "", "", nick, sex, status));
+            std::string apply_alias = res->getString("alias_name");
+            list.push_back(
+                std::make_shared<ApplyInfo>(from_uid, name, "", "", nick, sex, status, apply_alias));
         }
         return true;
     }
@@ -191,6 +210,74 @@ bool MySqlDao::getApplyList(const int &touid, std::vector<std::shared_ptr<ApplyI
         std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
         return false;
     }
+}
+
+bool MySqlDao::getFriendApplyAlias(int from_uid, int to_uid, std::string &out_alias)
+{
+    out_alias.clear();
+    auto con = _pool->getConnection();
+    if (con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con]() {
+        _pool->returnConnection(std::move(con));
+    });
+    try
+    {
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
+            "SELECT alias_name FROM friend_apply WHERE from_uid = ? AND to_uid = ? LIMIT 1"));
+        pstmt->setInt(1, from_uid);
+        pstmt->setInt(2, to_uid);
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        if (res->next())
+        {
+            out_alias = res->getString("alias_name");
+            return true;
+        }
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return false;
+    }
+    return false;
+}
+
+bool MySqlDao::getFriendAlias(int self_id, int friend_id, std::string &out_alias)
+{
+    out_alias.clear();
+    auto con = _pool->getConnection();
+    if (con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con]() {
+        _pool->returnConnection(std::move(con));
+    });
+    try
+    {
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
+            "SELECT alias_name FROM friend WHERE self_id = ? AND friend_id = ? LIMIT 1"));
+        pstmt->setInt(1, self_id);
+        pstmt->setInt(2, friend_id);
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        if (res->next())
+        {
+            out_alias = res->getString("alias_name");
+            return true;
+        }
+    }
+    catch (sql::SQLException &e)
+    {
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+        return false;
+    }
+    return false;
 }
 
 bool MySqlDao::authFriendApply(const int &uid, const int &touid)
@@ -223,7 +310,9 @@ bool MySqlDao::authFriendApply(const int &uid, const int &touid)
     return true;
 }
 
-bool MySqlDao::addFriend(const int& uid,const int& touid,std::string alias_name)
+bool MySqlDao::addFriend(int applicant_uid, int accepter_uid,
+                         const std::string &alias_applicant_for_accepter,
+                         const std::string &alias_accepter_for_applicant)
 {
     auto con = _pool->getConnection();
     if (con == nullptr)
@@ -235,16 +324,20 @@ bool MySqlDao::addFriend(const int& uid,const int& touid,std::string alias_name)
     });
     try
     {
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id,friend_id,alias_name) values (?,?,?)"));
-        pstmt->setInt(1,uid);
-        pstmt->setInt(2,touid);
-        pstmt->setString(3,alias_name);
+        std::unique_ptr<sql::PreparedStatement> pstmt(
+            con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id,friend_id,alias_name) "
+                                        "values (?,?,?)"));
+        pstmt->setInt(1, applicant_uid);
+        pstmt->setInt(2, accepter_uid);
+        pstmt->setString(3, alias_applicant_for_accepter);
         int row_affected = pstmt->executeUpdate();
 
-        std::unique_ptr<sql::PreparedStatement> pstmt2(con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id,friend_id,alias_name) values (?,?,?)"));
-        pstmt2->setInt(1,touid);
-        pstmt2->setInt(2,uid);
-        pstmt2->setString(3,alias_name);
+        std::unique_ptr<sql::PreparedStatement> pstmt2(
+            con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id,friend_id,alias_name) "
+                                        "values (?,?,?)"));
+        pstmt2->setInt(1, accepter_uid);
+        pstmt2->setInt(2, applicant_uid);
+        pstmt2->setString(3, alias_accepter_for_applicant);
         int row_affected2 = pstmt2->executeUpdate();
         return row_affected > 0 || row_affected2 > 0;
     }
@@ -276,16 +369,16 @@ bool MySqlDao::getFriendList(int uid, std::vector<std::shared_ptr<UserInfo>> &li
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
         while (res->next())
         {
-            std::shared_ptr<UserInfo> user_ptr = std::make_shared<UserInfo>();
-            user_ptr->uid = res->getInt("friend_id");
-            user_ptr->name = res->getString("alias_name");
-            auto user_info = getUserInfo(user_ptr->uid);
-            if (user_info == nullptr)
+            const int friend_id = res->getInt("friend_id");
+            const std::string row_alias = res->getString("alias_name");
+            auto base = getUserInfo(friend_id);
+            if (base == nullptr)
             {
                 continue;
             }
-            user_info->nick = user_ptr->name;
-            list.push_back(user_ptr);
+            auto merged = std::make_shared<UserInfo>(*base);
+            merged->alias_name = row_alias;
+            list.push_back(merged);
         }
         return true;
     }

@@ -176,13 +176,14 @@ void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &m
             obj["nick"] = apply->_nick;
             obj["sex"] = apply->_sex;
             obj["status"] = apply->_status;
+            obj["alias_name"] = apply->alias_name;
             return_value["apply_list"].append(obj);
         }
     }
     // 获取好友列表
     std::vector<std::shared_ptr<UserInfo>> friend_list;
     bool b_friend_list = getFriendList(uid,friend_list);
-    for (auto &friend_element:friend_list)
+    for (auto &friend_element : friend_list)
     {
         Json::Value obj;
         obj["name"] = friend_element->name;
@@ -191,7 +192,7 @@ void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &m
         obj["nick"] = friend_element->nick;
         obj["sex"] = friend_element->sex;
         obj["desc"] = friend_element->desc;
-        obj["back"] = friend_element->back;
+        obj["alias_name"] = friend_element->alias_name;
         return_value["friend_list"].append(obj);
     }
     auto server_name = ConfigMgr::getInstance()["SelfServer"]["Name"];
@@ -447,8 +448,7 @@ void LogicSystem::addFriendHandler(std::shared_ptr<CSession> session, const shor
         session->send(return_str, MSG_ADD_FRIEND_RSP);
     });
 
-    // 更新数据库
-    MySqlMgr::getInstance().addFriendApply(uid, touid);
+    MySqlMgr::getInstance().addFriendApply(uid, touid, alias_name);
 
     // 查询Redis 查找touid对应的server ip
     auto to_str = std::to_string(touid);
@@ -490,6 +490,7 @@ void LogicSystem::addFriendHandler(std::shared_ptr<CSession> session, const shor
                 notify["nick"] = "";
                 notify["sex"] = 0;
             }
+            notify["alias_name"] = alias_name;
             std::string return_str = notify.toStyledString();
             to_user_session->send(return_str, MSG_NOTIFY_ADDFRIEND_REQ);
         }
@@ -507,6 +508,7 @@ void LogicSystem::addFriendHandler(std::shared_ptr<CSession> session, const shor
         add_req.set_nick(apply_info->nick.c_str());
         add_req.set_sex(apply_info->sex);
     }
+    add_req.set_alias_name(alias_name);
     // 发送请求到对方服务器
     ChatGrpcClient::getInstance().NotifyAddFriend(to_ip_value, add_req);
 }
@@ -553,8 +555,14 @@ void LogicSystem::authFriendHandler(std::shared_ptr<CSession> session, const sho
         session->send(return_str, MSG_AUTH_FRIEND_RSP);
     });
 
+    std::string alias_applicant_for_accepter;
+    MySqlMgr::getInstance().getFriendApplyAlias(applicant_uid, accepter_uid, alias_applicant_for_accepter);
+
     MySqlMgr::getInstance().authFriendApply(applicant_uid, accepter_uid);
-    MySqlMgr::getInstance().addFriend(applicant_uid, accepter_uid, alias_name);
+    MySqlMgr::getInstance().addFriend(applicant_uid, accepter_uid, alias_applicant_for_accepter, alias_name);
+
+    std::string applicant_peer_alias;
+    MySqlMgr::getInstance().getFriendAlias(applicant_uid, accepter_uid, applicant_peer_alias);
     // 通知申请人所在 Chat 节点（与 ChatServiceImpl::NotifyAuthFriend 中 touid 为收包用户一致）
     auto to_ip_key = RedisPrefix::USERIPPREFIX + std::to_string(applicant_uid);
     std::string to_ip_value = "";
@@ -584,6 +592,7 @@ void LogicSystem::authFriendHandler(std::shared_ptr<CSession> session, const sho
                 notify["nick"] = peer_info->nick;
                 notify["icon"] = peer_info->icon;
                 notify["sex"] = peer_info->sex;
+                notify["alias_name"] = applicant_peer_alias;
             }
             else
             {
@@ -603,5 +612,5 @@ void LogicSystem::authFriendHandler(std::shared_ptr<CSession> session, const sho
 
 bool LogicSystem::getFriendList(int uid, std::vector<std::shared_ptr<UserInfo>> &list)
 {
-    return MySqlMgr::getInstance().getFriendList(uid,list);
+    return MySqlMgr::getInstance().getFriendList(uid, list);
 }

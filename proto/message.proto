@@ -51,6 +51,7 @@ message AddFriendReq {
   string icon = 5;
   int32 sex = 6;
   string nick = 7;
+  string alias_name = 8;
 }
 
 message AddFriendRsp {

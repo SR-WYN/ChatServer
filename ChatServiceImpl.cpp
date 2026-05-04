@@ -41,6 +41,7 @@ Status ChatServiceImpl::NotifyAddFriend(ServerContext *context, const AddFriendR
     notify["icon"] = request->icon();
     notify["sex"] = request->sex();
     notify["nick"] = request->nick();
+    notify["alias_name"] = request->alias_name();
     std::string return_str = notify.toStyledString();
     session->send(return_str, MSG_NOTIFY_ADDFRIEND_REQ);
     return Status::OK;
@@ -80,6 +81,9 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext *context, const AuthFrien
         return_value["nick"] = user_info->nick;
         return_value["icon"] = user_info->icon;
         return_value["sex"] = user_info->sex;
+        std::string peer_alias;
+        MySqlMgr::getInstance().getFriendAlias(touid, fromuid, peer_alias);
+        return_value["alias_name"] = peer_alias;
     }
     else
     {
@@ -116,6 +120,8 @@ bool ChatServiceImpl::getBaseInfo(std::string base_key, int uid,
         user_info->desc = root["desc"].asString();
         user_info->sex = root["sex"].asInt();
         user_info->icon = root["icon"].asString();
+        user_info->back.clear();
+        user_info->alias_name.clear();
         std::cout << "user login uid is " << user_info->uid << " name is " << user_info->name
                   << " pwd is " << user_info->pwd << " email is " << user_info->email << " nick is "
                   << user_info->nick << " desc is " << user_info->desc << " sex is "
