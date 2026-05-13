@@ -1,0 +1,2 @@
+add_library(cs_domain INTERFACE)
+target_link_libraries(cs_domain INTERFACE chatserver_includes)
