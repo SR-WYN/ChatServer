@@ -88,13 +88,6 @@ void CSession::AsyncReadHead(int total_len)
                           msg_id = boost::asio::detail::socket_ops::network_to_host_short(msg_id);
                           std::cout << "msg_id is " << msg_id << std::endl;
 
-                          if (msg_id > MAX_LENGTH)
-                          {
-                              std::cout << "invalid msg_id, msg_id is " << msg_id << std::endl;
-                              _server->ClearSession(_session_id);
-                              return;
-                          }
-
                           short msg_len = 0;
                           memcpy(&msg_len, _recv_head_node->getData() + HEAD_ID_LEN, HEAD_DATA_LEN);
                           msg_len = boost::asio::detail::socket_ops::network_to_host_short(msg_len);
