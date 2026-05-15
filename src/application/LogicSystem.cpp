@@ -2,6 +2,7 @@
 #include "CSession.h"
 #include "ChatGrpcClient.h"
 #include "ConfigMgr.h"
+#include "HeartBeatHandler.h"
 #include "MsgNode.h"
 #include "MySqlMgr.h"
 #include "RedisMgr.h"
@@ -113,6 +114,10 @@ void LogicSystem::registerCallBacks()
                                                    const short &msg_id, const std::string &msg_data) {
         this->chatTextMsgHandler(session, msg_id, msg_data);
     };
+    _fun_callbacks[MSG_HEARTBEAT_PING] =
+        [](std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data) {
+            HeartBeatHandler::handlePing(session, msg_id, msg_data);
+        };
 }
 
 void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &msg_id,
