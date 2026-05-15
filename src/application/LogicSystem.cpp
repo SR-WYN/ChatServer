@@ -66,6 +66,7 @@ void LogicSystem::dealMsg()
                     _msg_que.pop();
                     continue;
                 }
+                HeartBeatHandler::touchSessionActivity(msg_node->getSession());
                 call_back_iter->second(msg_node->getSession(), msg_node->getRecvNode()->getMsgId(),
                                        std::string(msg_node->getRecvNode()->getData(),
                                                    msg_node->getRecvNode()->getCurLen()));
@@ -85,6 +86,7 @@ void LogicSystem::dealMsg()
             continue;
         }
 
+        HeartBeatHandler::touchSessionActivity(msg_node->getSession());
         call_back_iter->second(
             msg_node->getSession(), msg_node->getRecvNode()->getMsgId(),
             std::string(msg_node->getRecvNode()->getData(), msg_node->getRecvNode()->getCurLen()));

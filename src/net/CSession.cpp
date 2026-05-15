@@ -10,11 +10,23 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
+
+namespace
+{
+std::uint64_t steady_ms()
+{
+    return static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count());
+}
+} // namespace
 
 CSession::CSession(boost::asio::io_context &io_context, CServer *server)
     : _socket(io_context), _server(server), _b_close(false), _b_head_parse(false), _user_uid(0)
@@ -49,8 +61,25 @@ int CSession::getUserId()
     return _user_uid;
 }
 
+void CSession::touchActivity()
+{
+    _last_activity_ms.store(steady_ms(), std::memory_order_relaxed);
+}
+
+std::chrono::milliseconds CSession::appIdleAge() const
+{
+    const std::uint64_t now = steady_ms();
+    const std::uint64_t last = _last_activity_ms.load(std::memory_order_relaxed);
+    if (last == 0 || now < last)
+    {
+        return std::chrono::milliseconds(0);
+    }
+    return std::chrono::milliseconds(static_cast<std::chrono::milliseconds::rep>(now - last));
+}
+
 void CSession::start()
 {
+    touchActivity();
     AsyncReadHead(HEAD_TOTAL_LEN);
 }
 

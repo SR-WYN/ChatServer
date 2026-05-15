@@ -49,6 +49,9 @@ enum MSG_IDS
     MSG_HEARTBEAT_PONG = 3002,           // 心跳 pong
 };
 
+// 应用层无消息超过该秒数则关闭连接（建议 >= 客户端 3×Ping 间隔）
+constexpr int SESSION_APP_IDLE_SECONDS = 120;
+
 namespace RedisPrefix {
     constexpr const char* CODE = "code_";
     constexpr const char* USERIPPREFIX = "uip_";

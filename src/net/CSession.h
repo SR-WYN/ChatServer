@@ -1,6 +1,9 @@
 #pragma once
 #include "const.h"
+#include <atomic>
 #include <boost/asio.hpp>
+#include <chrono>
+#include <cstdint>
 #include <memory>
 #include <queue>
 
@@ -28,6 +31,8 @@ public:
     std::shared_ptr<CSession> shared_self();
     void AsyncReadBody(int length);
     void AsyncReadHead(int total_len);
+    void touchActivity();
+    std::chrono::milliseconds appIdleAge() const;
 
 private:
     void asyncReadFull(std::size_t max_length,
@@ -48,6 +53,7 @@ private:
     // 收到的头部结构
     std::shared_ptr<MsgNode> _recv_head_node;
     int _user_uid;
+    std::atomic<std::uint64_t> _last_activity_ms{0};
 };
 
 class LogicNode

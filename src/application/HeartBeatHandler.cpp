@@ -19,11 +19,13 @@ void HeartBeatHandler::handlePing(std::shared_ptr<CSession> session, const short
 
 void HeartBeatHandler::touchSessionActivity(const std::shared_ptr<CSession> &session)
 {
-    (void)session;
-    // TODO: 更新会话最后活跃时间，供空闲踢线
+    if (session)
+    {
+        session->touchActivity();
+    }
 }
 
 void HeartBeatHandler::scheduleIdleSweep()
 {
-    // TODO: 定时扫描长时间无心跳的连接并 close
+    // 空闲扫描由 CServer::runIdleSweep 负责
 }
