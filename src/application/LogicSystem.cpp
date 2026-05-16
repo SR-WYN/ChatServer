@@ -7,6 +7,7 @@
 #include "MySqlMgr.h"
 #include "RedisMgr.h"
 #include "StatusGrpcClient.h"
+#include "UserCacheService.h"
 #include "UserMgr.h"
 #include "const.h"
 #include "data.h"
@@ -157,9 +158,8 @@ void LogicSystem::loginHandler(std::shared_ptr<CSession> session, const short &m
 
     return_value["error"] = ErrorCodes::SUCCESS;
 
-    std::string base_key = RedisPrefix::USER_BASE_INFO + uid_str;
     auto user_info = std::make_shared<UserInfo>();
-    bool b_base = getBaseInfo(base_key, uid, user_info);
+    bool b_base = UserCacheService::getByUid(uid, user_info);
     if (!b_base)
     {
         return_value["error"] = ErrorCodes::UID_INVALID;
@@ -251,193 +251,11 @@ void LogicSystem::searchUserHandler(std::shared_ptr<CSession> session, const sho
     auto uid_str = root["uid"].asString();
     if (root["uid"].isInt())
     {
-        getUserByUid(uid_str, result);
+        UserCacheService::fillSearchResultByUid(std::to_string(root["uid"].asInt()), result);
     }
     else
     {
-        getUserByName(uid_str, result);
-    }
-}
-
-bool LogicSystem::getBaseInfo(const std::string &base_key, int uid,
-                              std::shared_ptr<UserInfo> user_info)
-{
-    if (!user_info)
-    {
-        return false;
-    }
-
-    // 暂时没有redisTTL机制
-
-    // std::string raw;
-    // if (RedisMgr::getInstance().get(base_key, raw))
-    // {
-    //     Json::Reader reader;
-    //     Json::Value root;
-    //     if (!reader.parse(raw, root) || !root.isObject())
-    //     {
-    //         return false;
-    //     }
-    //     user_info->uid = uid;
-    //     user_info->name = root.isMember("name") ? root["name"].asString() : "";
-    //     user_info->pwd = root.isMember("pwd") ? root["pwd"].asString() : "";
-    //     user_info->email = root.isMember("email") ? root["email"].asString() : "";
-    //     user_info->nick = root.isMember("nick") ? root["nick"].asString() : user_info->name;
-    //     user_info->desc = root.isMember("desc") ? root["desc"].asString() : "";
-    //     user_info->sex = root.isMember("sex") ? root["sex"].asInt() : 0;
-    //     user_info->back = root.isMember("back") ? root["back"].asString() : "";
-    //     return true;
-    // }
-
-    auto db_user = MySqlMgr::getInstance().getUserInfo(uid);
-    if (!db_user)
-    {
-        return false;
-    }
-    *user_info = *db_user;
-    if (user_info->nick.empty())
-    {
-        user_info->nick = user_info->name;
-    }
-
-    Json::Value cache_root;
-    cache_root["uid"] = user_info->uid;
-    cache_root["name"] = user_info->name;
-    cache_root["pwd"] = user_info->pwd;
-    cache_root["email"] = user_info->email;
-    cache_root["nick"] = user_info->nick;
-    cache_root["desc"] = user_info->desc;
-    cache_root["sex"] = user_info->sex;
-    cache_root["icon"] = user_info->icon;
-    Json::FastWriter writer;
-    const std::string cache_json = writer.write(cache_root);
-    (void)RedisMgr::getInstance().set(base_key, cache_json);
-    if (!user_info->name.empty())
-    {
-        (void)RedisMgr::getInstance().set(RedisPrefix::USER_NAME_INFO + user_info->name,
-                                          cache_json);
-    }
-
-    return true;
-}
-
-void LogicSystem::getUserByUid(const std::string &uid_str, Json::Value &result)
-{
-    result["error"] = ErrorCodes::SUCCESS;
-    std::string base_key = RedisPrefix::USER_BASE_INFO + uid_str;
-    std::string info_str = "";
-    bool b_base = RedisMgr::getInstance().get(base_key, info_str);
-    if (b_base)
-    {
-        Json::Reader reader;
-        Json::Value root;
-        reader.parse(info_str, root);
-        auto uid = root["uid"].asInt();
-        auto name = root["name"].asString();
-        auto pwd = root["pwd"].asString();
-        auto email = root["email"].asString();
-        auto nick = root["nick"].asString();
-        auto desc = root["desc"].asString();
-        auto sex = root["sex"].asInt();
-        auto icon = root["icon"].asString();
-
-        std::cout << "get user by uid " << uid << " name " << name << " pwd " << pwd << " email "
-                  << email << " nick " << nick << " desc " << desc << " sex " << sex << " icon "
-                  << icon << std::endl;
-
-        result["uid"] = uid;
-        result["name"] = name;
-        result["pwd"] = pwd;
-        result["email"] = email;
-        result["nick"] = nick;
-        result["desc"] = desc;
-        result["sex"] = sex;
-        result["icon"] = icon;
-        return;
-    }
-    auto uid = std::stoi(uid_str);
-    std::shared_ptr<UserInfo> user_info = nullptr;
-    user_info = MySqlMgr::getInstance().getUserInfo(uid);
-    if (user_info == nullptr)
-    {
-        result["error"] = ErrorCodes::UID_INVALID;
-        return;
-    }
-    Json::Value redis_root;
-    redis_root["uid"] = user_info->uid;
-    redis_root["name"] = user_info->name;
-    redis_root["pwd"] = user_info->pwd;
-    redis_root["email"] = user_info->email;
-    redis_root["nick"] = user_info->nick;
-    redis_root["desc"] = user_info->desc;
-    redis_root["sex"] = user_info->sex;
-    redis_root["icon"] = user_info->icon;
-
-    const std::string cache_str = redis_root.toStyledString();
-    RedisMgr::getInstance().set(base_key, cache_str);
-    if (!user_info->name.empty())
-    {
-        RedisMgr::getInstance().set(RedisPrefix::USER_NAME_INFO + user_info->name, cache_str);
-    }
-}
-
-void LogicSystem::getUserByName(const std::string &name_str, Json::Value &result)
-{
-    result["error"] = ErrorCodes::SUCCESS;
-    std::string name_key = RedisPrefix::USER_NAME_INFO + name_str;
-    std::string info_str = "";
-    bool b_name = RedisMgr::getInstance().get(name_key, info_str);
-    if (b_name)
-    {
-        Json::Reader reader;
-        Json::Value root;
-        reader.parse(info_str, root);
-        auto uid = root["uid"].asInt();
-        auto name = root["name"].asString();
-        auto pwd = root["pwd"].asString();
-        auto email = root["email"].asString();
-        auto nick = root["nick"].asString();
-        auto desc = root["desc"].asString();
-        auto sex = root["sex"].asInt();
-        auto icon = root["icon"].asString();
-
-        std::cout << "get user by name " << name_str << " uid " << uid << " name " << name
-                  << " pwd " << pwd << " email " << email << " nick " << nick << " desc " << desc
-                  << " sex " << sex << " icon " << icon << std::endl;
-
-        result["uid"] = uid;
-        result["name"] = name;
-        result["pwd"] = pwd;
-        result["email"] = email;
-        result["nick"] = nick;
-        result["desc"] = desc;
-        result["sex"] = sex;
-        result["icon"] = icon;
-        return;
-    }
-    auto user_info = MySqlMgr::getInstance().getUserInfo(name_str);
-    if (user_info == nullptr)
-    {
-        result["error"] = ErrorCodes::UID_INVALID;
-        return;
-    }
-    const std::string uid_str = std::to_string(user_info->uid);
-    std::string base_key = RedisPrefix::USER_BASE_INFO + uid_str;
-    Json::Value redis_root;
-    redis_root["uid"] = user_info->uid;
-    redis_root["name"] = user_info->name;
-    redis_root["pwd"] = user_info->pwd;
-    redis_root["email"] = user_info->email;
-    redis_root["nick"] = user_info->nick;
-    redis_root["desc"] = user_info->desc;
-    redis_root["sex"] = user_info->sex;
-    redis_root["icon"] = user_info->icon;
-
-    const std::string cache_str = redis_root.toStyledString();
-    RedisMgr::getInstance().set(base_key, cache_str);
-    if (!user_info->name.empty())
-    {
-        RedisMgr::getInstance().set(RedisPrefix::USER_NAME_INFO + user_info->name, cache_str);
+        UserCacheService::fillSearchResultByName(uid_str, result);
     }
 }
 
@@ -474,9 +292,8 @@ void LogicSystem::addFriendHandler(std::shared_ptr<CSession> session, const shor
         return;
     }
 
-    std::string base_key = RedisPrefix::USER_BASE_INFO + std::to_string(uid);
     auto apply_info = std::make_shared<UserInfo>();
-    bool b_info = getBaseInfo(base_key, uid, apply_info);
+    bool b_info = UserCacheService::getByUid(uid, apply_info);
 
     auto &cfg = ConfigMgr::getInstance();
     auto self_name = cfg["SelfServer"]["Name"];
@@ -548,8 +365,7 @@ void LogicSystem::authFriendHandler(std::shared_ptr<CSession> session, const sho
     auto user_info = std::make_shared<UserInfo>();
 
     // 给同意方返回：刚通过的好友是申请人 applicant 的资料
-    std::string base_key = RedisPrefix::USER_BASE_INFO + std::to_string(applicant_uid);
-    bool b_info = getBaseInfo(base_key, applicant_uid, user_info);
+    bool b_info = UserCacheService::getByUid(applicant_uid, user_info);
     if (b_info)
     {
         return_value["name"] = user_info->name;
@@ -596,9 +412,8 @@ void LogicSystem::authFriendHandler(std::shared_ptr<CSession> session, const sho
             notify["error"] = ErrorCodes::SUCCESS;
             notify["fromuid"] = accepter_uid;
             notify["touid"] = applicant_uid;
-            std::string peer_key = RedisPrefix::USER_BASE_INFO + std::to_string(accepter_uid);
             auto peer_info = std::make_shared<UserInfo>();
-            bool b_into = getBaseInfo(peer_key, accepter_uid, peer_info);
+            bool b_into = UserCacheService::getByUid(accepter_uid, peer_info);
             if (b_into)
             {
                 notify["name"] = peer_info->name;
