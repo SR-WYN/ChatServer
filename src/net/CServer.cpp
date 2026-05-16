@@ -1,27 +1,35 @@
 #include "CServer.h"
 #include "AsioIOServicePool.h"
 #include "CSession.h"
-#include "const.h"
-#include <chrono>
-#include <future>
 #include <iostream>
-#include <vector>
 
 CServer::CServer(boost::asio::io_context &io_context, short port)
     : _io_context(io_context), _port(port),
-      _acceptor(io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _port)),
-      _idle_sweep_timer(io_context)
+      _acceptor(io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _port))
 {
     std::cout << "Server start success, listen on port: " << _port << std::endl;
     StartAccept();
-    scheduleIdleSweep();
 }
 
 CServer::~CServer()
 {
-    boost::system::error_code ec;
-    _idle_sweep_timer.cancel(ec);
     std::cout << "Server destruct" << std::endl;
+}
+
+boost::asio::io_context &CServer::ioContext()
+{
+    return _io_context;
+}
+
+void CServer::snapshotSessions(std::vector<std::shared_ptr<CSession>> &out)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    out.clear();
+    out.reserve(_sessions.size());
+    for (const auto &kv : _sessions)
+    {
+        out.push_back(kv.second);
+    }
 }
 
 void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
@@ -49,52 +57,6 @@ void CServer::StartAccept()
                            [this, new_session](const boost::system::error_code &error) {
                                HandleAccept(new_session, error);
                            });
-}
-
-void CServer::scheduleIdleSweep()
-{
-    _idle_sweep_timer.expires_after(std::chrono::seconds(10));
-    _idle_sweep_timer.async_wait([this](const boost::system::error_code &ec) {
-        if (ec == boost::asio::error::operation_aborted)
-        {
-            return;
-        }
-        if (ec)
-        {
-            std::cout << "idle sweep timer: " << ec.message() << std::endl;
-        }
-        else
-        {
-            runIdleSweep();
-        }
-        scheduleIdleSweep();
-    });
-}
-
-void CServer::runIdleSweep()
-{
-    std::vector<std::shared_ptr<CSession>> snapshot;
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-        snapshot.reserve(_sessions.size());
-        for (const auto &kv : _sessions)
-        {
-            snapshot.push_back(kv.second);
-        }
-    }
-    const auto limit = std::chrono::seconds(SESSION_APP_IDLE_SECONDS);
-    for (const auto &s : snapshot)
-    {
-        if (!s)
-        {
-            continue;
-        }
-        if (s->appIdleAge() >= limit)
-        {
-            std::cout << "closing idle session " << s->getSessionId() << std::endl;
-            s->close();
-        }
-    }
 }
 
 void CServer::ClearSession(std::string uuid)

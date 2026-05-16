@@ -1,8 +1,10 @@
 #pragma once
 #include <boost/asio.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <map>
+#include <memory>
 #include <mutex>
+#include <string>
+#include <vector>
 
 class CSession;
 
@@ -12,17 +14,16 @@ public:
     CServer(boost::asio::io_context &io_context, short port);
     ~CServer();
     void ClearSession(std::string);
+    boost::asio::io_context &ioContext();
+    void snapshotSessions(std::vector<std::shared_ptr<CSession>> &out);
 
 private:
     void HandleAccept(std::shared_ptr<CSession>, const boost::system::error_code &error);
     void StartAccept();
-    void scheduleIdleSweep();
-    void runIdleSweep();
 
     boost::asio::io_context &_io_context;
     short _port;
     boost::asio::ip::tcp::acceptor _acceptor;
-    boost::asio::steady_timer _idle_sweep_timer;
     std::map<std::string, std::shared_ptr<CSession>> _sessions;
     std::mutex _mutex;
 };

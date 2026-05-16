@@ -1,6 +1,7 @@
 #include "AsioIOServicePool.h"
 #include "CServer.h"
 #include "ConfigMgr.h"
+#include "HeartBeatHandler.h"
 #include "LogicSystem.h"
 #include <csignal>
 #include <mutex>
@@ -46,7 +47,9 @@ int main()
         });
         auto port_str = cfg["SelfServer"]["Port"];
         CServer s(io_context, atoi(port_str.c_str()));
+        HeartBeatHandler::start(s);
         io_context.run();
+        HeartBeatHandler::stop();
 
         RedisMgr::getInstance().hDel(RedisPrefix::LOGIN_COUNT, server_name);
         RedisMgr::getInstance().close();
