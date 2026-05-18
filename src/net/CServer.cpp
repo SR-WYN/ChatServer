@@ -52,7 +52,7 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
 void CServer::StartAccept()
 {
     auto &io_context = AsioIOServicePool::getInstance().getIOService();
-    std::shared_ptr<CSession> new_session = std::make_shared<CSession>(_io_context, this);
+    std::shared_ptr<CSession> new_session = std::make_shared<CSession>(io_context, this);
     _acceptor.async_accept(new_session->getSocket(),
                            [this, new_session](const boost::system::error_code &error) {
                                HandleAccept(new_session, error);
