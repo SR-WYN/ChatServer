@@ -1,4 +1,5 @@
 #include "MySqlPool.h"
+#include "ConfigMgr.h"
 #include "utils.h"
 #include <cppconn/exception.h>
 #include <cppconn/statement.h>
@@ -12,11 +13,36 @@ SqlConnection::SqlConnection(sql::Connection *con, int64_t lasttime)
 {
 }
 
-MySqlPool::MySqlPool(const std::string &url, const std::string &user, const std::string &pass,
-                     const std::string &schema, int poolSize)
-    : _url(url), _user(user), _pass(pass), _schema(schema), _pool_size(poolSize), _b_stop(false),
-      _fail_count(0)
+MySqlPool::MySqlPool() = default;
+
+void MySqlPool::initOnce()
 {
+    auto &pool = getInstance();
+    std::lock_guard<std::mutex> lock(pool._init_mutex);
+    if (pool._initialized.load())
+    {
+        return;
+    }
+    auto &cfg = ConfigMgr::getInstance();
+    const auto &host = cfg["MySql"]["Host"];
+    const auto &port = cfg["MySql"]["Port"];
+    const auto &user = cfg["MySql"]["User"];
+    const auto &pass = cfg["MySql"]["Passwd"];
+    const auto &schema = cfg["MySql"]["Schema"];
+    pool.initPool(host + ":" + port, user, pass, schema, 5);
+    pool._initialized.store(true);
+}
+
+void MySqlPool::initPool(const std::string &url, const std::string &user, const std::string &pass,
+                         const std::string &schema, int poolSize)
+{
+    _url = url;
+    _user = user;
+    _pass = pass;
+    _schema = schema;
+    _pool_size = poolSize;
+    _b_stop.store(false);
+    _fail_count.store(0);
     try
     {
         for (int i = 0; i < _pool_size; i++)

@@ -45,6 +45,8 @@ enum MSG_IDS
     MSG_TEXT_CHAT_MSG_REQ = 2011,        // 文本聊天消息请求
     MSG_TEXT_CHAT_MSG_RSP = 2012,        // 文本聊天消息响应
     MSG_NOTIFY_TEXT_CHAT_MSG_REQ = 2013, // 通知文本聊天消息请求
+    MSG_CHAT_HISTORY_REQ = 2014,         // 聊天历史请求
+    MSG_CHAT_HISTORY_RSP = 2015,         // 聊天历史响应
     MSG_HEARTBEAT_PING = 3001,           // 心跳 ping
     MSG_HEARTBEAT_PONG = 3002,           // 心跳 pong
 };

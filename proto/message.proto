@@ -111,6 +111,7 @@ message TextChatMsgRsp {
   int32 fromuid = 2;
   int32 touid=3;
   repeated TextChatData textmsgs =4;
+  bool recipient_online = 5;
 }
 
 service ChatService {

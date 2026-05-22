@@ -4,6 +4,7 @@
 #include "HeartBeatHandler.h"
 #include "LoginHandler.h"
 #include "MsgNode.h"
+#include "ChatHistoryHandler.h"
 #include "TextChatHandler.h"
 #include "UserHandler.h"
 #include "const.h"
@@ -109,6 +110,10 @@ void LogicSystem::registerCallBacks()
     _fun_callbacks[MSG_TEXT_CHAT_MSG_REQ] =
         [](std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data) {
             TextChatHandler::handleTextChat(session, msg_id, msg_data);
+        };
+    _fun_callbacks[MSG_CHAT_HISTORY_REQ] =
+        [](std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data) {
+            ChatHistoryHandler::handleHistory(session, msg_id, msg_data);
         };
     _fun_callbacks[MSG_HEARTBEAT_PING] =
         [](std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data) {

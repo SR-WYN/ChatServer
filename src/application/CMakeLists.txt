@@ -1,13 +1,27 @@
 add_library(cs_application STATIC
     LogicSystem.cpp
-    LoginHandler.cpp
-    UserHandler.cpp
-    FriendHandler.cpp
-    TextChatHandler.cpp
-    UserCacheService.cpp
-    HeartBeatHandler.cpp
-    ChatServiceImpl.cpp
-    UserMgr.cpp
+    mysql/MySqlPool.cpp
+    mysql/MySqlMgr.cpp
+    redis/RedisPool.cpp
+    redis/CacheRedisDao.cpp
+    redis/RedisMgr.cpp
+    login/LoginHandler.cpp
+    login/LoginRedisDao.cpp
+    user/UserHandler.cpp
+    user/UserDao.cpp
+    user/UserCacheService.cpp
+    user/UserMgr.cpp
+    user/HeartBeatHandler.cpp
+    friend/FriendHandler.cpp
+    friend/FriendDao.cpp
+    chat/TextChatHandler.cpp
+    chat/ChatMessageDao.cpp
+    chat/ChatMessageService.cpp
+    chat/ChatDeliveryService.cpp
+    chat/OfflineSyncService.cpp
+    chat/ChatHistoryHandler.cpp
+    chat/ChatServiceImpl.cpp
+    chat/PersistWorker.cpp
 )
 add_dependencies(cs_application chat_proto_gen)
 target_link_libraries(cs_application PUBLIC
@@ -16,7 +30,7 @@ target_link_libraries(cs_application PUBLIC
     cs_net
     cs_common
     cs_config
-    cs_redis
-    cs_mysql
     cs_grpc
+    mysqlcppconn
+    hiredis
 )

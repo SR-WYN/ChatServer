@@ -7,6 +7,7 @@
 #include <mutex>
 #include <thread>
 #include "ChatServiceImpl.h"
+#include "PersistWorker.h"
 #include "RedisMgr.h"
 #include "const.h"
 #include <grpcpp/grpcpp.h>
@@ -24,6 +25,7 @@ int main()
     {
         auto &pool = AsioIOServicePool::getInstance();
         RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, server_name, "0");
+        PersistWorker::getInstance().start();
         std::string server_address(cfg["SelfServer"]["Host"] + ":" + cfg["SelfServer"]["RPCPort"]);
         ChatServiceImpl service;
         grpc::ServerBuilder builder;
@@ -51,6 +53,7 @@ int main()
         io_context.run();
         HeartBeatHandler::stop();
 
+        PersistWorker::getInstance().stop();
         RedisMgr::getInstance().hDel(RedisPrefix::LOGIN_COUNT, server_name);
         RedisMgr::getInstance().close();
         grpc_server_thread.join();
