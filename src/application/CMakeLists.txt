@@ -1,5 +1,9 @@
 add_library(cs_application STATIC
     LogicSystem.cpp
+    LoginHandler.cpp
+    UserHandler.cpp
+    FriendHandler.cpp
+    TextChatHandler.cpp
     UserCacheService.cpp
     HeartBeatHandler.cpp
     ChatServiceImpl.cpp
