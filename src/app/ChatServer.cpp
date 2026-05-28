@@ -5,6 +5,7 @@
 #include "ChatServiceImpl.h"
 #include "ConfigMgr.h"
 #include "HeartBeatHandler.h"
+#include "Log.h"
 #include "LogicSystem.h"
 #include "NodeHeartbeat.h"
 #include "PersistWorker.h"
@@ -21,9 +22,18 @@ int main()
 {
     try
     {
+        ConfigMgr::getInstance();
+        if (!Log::init("ChatServer", ConfigMgr::getInstance().getLogConfig()))
+        {
+            return 1;
+        }
+        Log::info(LogModule::App, "ChatServer starting");
+
         auto slot = ChatNodeSlotSelector::acquireAndRegister();
         if (!slot)
         {
+            Log::error(LogModule::App, "failed to acquire chat node slot");
+            Log::shutdown();
             return 1;
         }
         ChatRuntimeConfig::getInstance().setSelf(*slot);
@@ -68,15 +78,19 @@ int main()
         RedisMgr::getInstance().hDel(RedisPrefix::LOGIN_COUNT, self.name);
         RedisMgr::getInstance().close();
         grpc_server_thread.join();
+        Log::info(LogModule::App, "ChatServer stopped");
+        Log::shutdown();
     }
     catch (std::exception &e)
     {
+        Log::error(LogModule::App, "ChatServer exception: {}", e.what());
         if (ChatRuntimeConfig::getInstance().hasSelf())
         {
             NodeHeartbeat::stop();
             StatusGrpcClient::getInstance().unregisterChatNode(
                 ChatRuntimeConfig::getInstance().self());
         }
+        Log::shutdown();
         return 1;
     }
     return 0;

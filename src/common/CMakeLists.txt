@@ -1,2 +1,2 @@
-add_library(cs_common STATIC utils.cpp)
-target_link_libraries(cs_common PUBLIC chatserver_includes)
+add_library(cs_common STATIC utils.cpp Log.cpp)
+target_link_libraries(cs_common PUBLIC chatserver_includes spdlog::spdlog)

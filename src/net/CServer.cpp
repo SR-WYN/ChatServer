@@ -1,12 +1,13 @@
 #include "CServer.h"
 #include "AsioIOServicePool.h"
 #include "CSession.h"
-#include <iostream>
+#include "Log.h"
 
 CServer::CServer(boost::asio::io_context &io_context, short port)
     : _io_context(io_context), _port(port),
       _acceptor(io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _port))
 {
+    Log::info(LogModule::Net, "TCP server listening on port {}", _port);
     StartAccept();
 }
 
@@ -41,6 +42,7 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
     }
     else
     {
+        Log::warn(LogModule::Net, "accept failed: {}", error.message());
     }
     StartAccept();
 }

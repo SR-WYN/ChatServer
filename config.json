@@ -1,4 +1,8 @@
 {
+  "Log": {
+    "Dir": "/home/asus/NETLEARN/ChatServer/src/logdir",
+    "Level": "info"
+  },
   "ChatNodePool": {
     "Slots": "slot0,slot1,slot2",
     "ClientAdvertiseHost": "127.0.0.1",
