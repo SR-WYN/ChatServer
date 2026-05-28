@@ -189,7 +189,7 @@ bool ChatMessageDao::queryHistory(int self_uid, int peer_uid, uint64_t before_id
         {
             sql += "AND id < ? ";
         }
-        sql += "ORDER BY id DESC LIMIT ?";
+        sql += "ORDER BY id DESC LIMIT " + std::to_string(limit);
 
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(sql));
         int idx = 1;
@@ -201,7 +201,6 @@ bool ChatMessageDao::queryHistory(int self_uid, int peer_uid, uint64_t before_id
         {
             pstmt->setUInt64(idx++, before_id);
         }
-        pstmt->setInt(idx++, limit);
 
         std::vector<ChatMessage> reversed;
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());

@@ -5,6 +5,17 @@
 #include "utils.h"
 #include <json/reader.h>
 #include <json/value.h>
+#include <json/writer.h>
+
+namespace
+{
+std::string compactJson(const Json::Value &value)
+{
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";
+    return Json::writeString(builder, value);
+}
+} // namespace
 
 void ChatHistoryHandler::handleHistory(std::shared_ptr<CSession> session, const short &msg_id,
                                        const std::string &msg_data)
@@ -14,9 +25,10 @@ void ChatHistoryHandler::handleHistory(std::shared_ptr<CSession> session, const 
     Json::Value root;
     Json::Value result;
     result["error"] = ErrorCodes::SUCCESS;
+    result["text_array"] = Json::Value(Json::arrayValue);
 
     utils::Defer defer([&result, session]() {
-        session->send(result.toStyledString(), MSG_CHAT_HISTORY_RSP);
+        session->send(compactJson(result), MSG_CHAT_HISTORY_RSP);
     });
 
     if (!reader.parse(msg_data, root))
@@ -25,7 +37,11 @@ void ChatHistoryHandler::handleHistory(std::shared_ptr<CSession> session, const 
         return;
     }
 
-    const int self_uid = session->getUserId();
+    int self_uid = session->getUserId();
+    if (self_uid <= 0 && root.isMember("uid"))
+    {
+        self_uid = root["uid"].asInt();
+    }
     if (self_uid <= 0)
     {
         result["error"] = ErrorCodes::TOKEN_INVALID;

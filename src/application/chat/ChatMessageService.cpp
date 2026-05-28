@@ -1,7 +1,6 @@
 #include "ChatMessageService.h"
 #include "MySqlMgr.h"
 #include "PersistWorker.h"
-#include <iostream>
 
 void ChatMessageService::persistOutgoingBatch(int from_uid, int to_uid,
                                               const Json::Value &text_array, bool delivered_online)
@@ -11,6 +10,7 @@ void ChatMessageService::persistOutgoingBatch(int from_uid, int to_uid,
         return;
     }
 
+    auto &worker = PersistWorker::getInstance();
     for (const auto &text_obj : text_array)
     {
         if (!text_obj.isObject())
@@ -25,19 +25,13 @@ void ChatMessageService::persistOutgoingBatch(int from_uid, int to_uid,
             continue;
         }
 
-        auto &repo = MySqlMgr::getInstance().chatMessages();
-        if (repo.existsByClientMsgId(from_uid, msgid))
-        {
-            continue;
-        }
-
         PersistTask task;
         task.message.client_msg_id = msgid;
         task.message.from_uid = from_uid;
         task.message.to_uid = to_uid;
         task.message.content = content;
         task.delivered_online = delivered_online;
-        PersistWorker::getInstance().enqueue(std::move(task));
+        worker.enqueue(std::move(task));
     }
 }
 

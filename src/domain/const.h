@@ -17,8 +17,8 @@ enum ErrorCodes
     TOKEN_INVALID = 1012,    // 令牌无效
 };
 
-// 最大长度
-#define MAX_LENGTH 1024 * 2
+// 单帧包体最大长度（与协议头 2 字节 body_len 一致，最大 32767）
+#define MAX_LENGTH 32767
 // 头部总长度
 #define HEAD_TOTAL_LEN 4
 // 头部id长度

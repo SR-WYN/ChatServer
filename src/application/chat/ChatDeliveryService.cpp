@@ -30,8 +30,12 @@ bool ChatDeliveryService::deliverTextChat(int from_uid, int to_uid, const Json::
         {
             return false;
         }
-        std::string return_str = return_value.toStyledString();
-        peer_session->send(return_str, MSG_TEXT_CHAT_MSG_RSP);
+        Json::Value notify;
+        notify["error"] = ErrorCodes::SUCCESS;
+        notify["fromuid"] = from_uid;
+        notify["touid"] = to_uid;
+        notify["text_array"] = text_array;
+        peer_session->send(notify.toStyledString(), MSG_NOTIFY_TEXT_CHAT_MSG_REQ);
         return true;
     }
 

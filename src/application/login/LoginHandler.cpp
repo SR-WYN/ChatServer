@@ -28,9 +28,13 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
     std::cout << "user login uid is  " << uid << " user token  is " << token << std::endl;
 
     Json::Value return_value;
-    utils::Defer defer([&return_value, session]() {
-        std::string return_str = return_value.toStyledString();
-        session->send(return_str, MSG_CHAT_LOGIN_RSP);
+    bool login_rsp_sent = false;
+    utils::Defer defer([&return_value, session, &login_rsp_sent]() {
+        if (!login_rsp_sent)
+        {
+            std::string return_str = return_value.toStyledString();
+            session->send(return_str, MSG_CHAT_LOGIN_RSP);
+        }
     });
 
     // 从redis中获取用户token是否正确
@@ -125,6 +129,8 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
     // uid和session绑定管理，方便以后踢人操作
     UserMgr::getInstance().setUserSession(uid, session);
 
+    login_rsp_sent = true;
+    session->send(return_value.toStyledString(), MSG_CHAT_LOGIN_RSP);
     OfflineSyncService::syncAfterLogin(session, uid);
 }
 
