@@ -27,7 +27,6 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
     reader.parse(msg_data, root);
     auto uid = root["uid"].asInt();
     auto token = root["token"].asString();
-    std::cout << "user login uid is  " << uid << " user token  is " << token << std::endl;
 
     Json::Value return_value;
     bool login_rsp_sent = false;

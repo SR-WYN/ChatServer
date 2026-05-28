@@ -9,7 +9,6 @@ protected:
     Singleton() = default;
     virtual ~Singleton()
     {
-        std::cout << "this is singleton destruct " << std::endl;
     }
 
     Singleton(const Singleton&) = delete;
@@ -28,6 +27,5 @@ public:
 
     void printAddress()
     {
-        std::cout << &getInstance() << std::endl;
     }
 };

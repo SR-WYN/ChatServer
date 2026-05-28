@@ -65,7 +65,6 @@ void HeartBeatHandler::scheduleIdleSweep()
         }
         if (ec)
         {
-            std::cout << "heartbeat idle sweep timer: " << ec.message() << std::endl;
         }
         else
         {
@@ -94,7 +93,6 @@ void HeartBeatHandler::runIdleSweep()
         }
         if (s->appIdleAge() >= limit)
         {
-            std::cout << "closing idle session " << s->getSessionId() << std::endl;
             s->close();
         }
     }

@@ -53,8 +53,6 @@ void LogicSystem::dealMsg()
             while (!_msg_que.empty())
             {
                 auto msg_node = _msg_que.front();
-                std::cout << "recv msg node is " << msg_node->getRecvNode()->getMsgId()
-                          << std::endl;
                 auto call_back_iter = _fun_callbacks.find(msg_node->getRecvNode()->getMsgId());
                 if (call_back_iter == _fun_callbacks.end())
                 {
@@ -71,13 +69,10 @@ void LogicSystem::dealMsg()
         }
 
         auto msg_node = _msg_que.front();
-        std::cout << "recv msg node is " << msg_node->getRecvNode()->getMsgId() << std::endl;
         auto call_back_iter = _fun_callbacks.find(msg_node->getRecvNode()->getMsgId());
         if (call_back_iter == _fun_callbacks.end())
         {
             _msg_que.pop();
-            std::cout << "not found call back for msg id " << msg_node->getRecvNode()->getMsgId()
-                      << std::endl;
             continue;
         }
 

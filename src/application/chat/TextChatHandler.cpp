@@ -19,7 +19,6 @@ void TextChatHandler::handleTextChat(std::shared_ptr<CSession> session, const sh
     reader.parse(msg_data, root);
     if (root.isNull() || root.empty())
     {
-        std::cout << "chat text msg data is null or empty" << std::endl;
         return;
     }
     auto fromuid = root["fromuid"].asInt();

@@ -22,14 +22,12 @@ bool persistOneMessage(int from_uid, int to_uid, const std::string &msgid, const
     uint64_t db_id = 0;
     if (!repo.saveMessage(msg, db_id))
     {
-        std::cerr << "persistOneMessage: saveMessage failed msgid=" << msgid << std::endl;
         return false;
     }
     if (!delivered_online)
     {
         if (!repo.enqueueOffline(db_id, to_uid))
         {
-            std::cerr << "persistOneMessage: enqueueOffline failed msgid=" << msgid << std::endl;
             return false;
         }
     }

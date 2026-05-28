@@ -13,7 +13,6 @@ MsgNode::MsgNode(short total_len)
 
 MsgNode::~MsgNode()
 {
-    std::cout << "MsgNode destruct" << std::endl;
     delete[] _data;
 }
 

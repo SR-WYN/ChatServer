@@ -77,8 +77,6 @@ void PersistWorker::run()
         uint64_t db_id = 0;
         if (!repo.saveMessage(task.message, db_id))
         {
-            std::cerr << "PersistWorker: saveMessage failed for msgid=" << task.message.client_msg_id
-                      << std::endl;
             continue;
         }
 

@@ -27,8 +27,6 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
     auto name = root["apply_name"].asString();
     auto alias_name = root["alias_name"].asString();
     auto touid = root["touid"].asInt();
-    std::cout << "add friend uid is " << uid << " name is " << name << " alias_name is "
-              << alias_name << " touid is " << touid << std::endl;
 
     Json::Value return_value;
     return_value["error"] = ErrorCodes::SUCCESS;
@@ -42,7 +40,6 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
     auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(touid);
     if (!peer_loc)
     {
-        std::cout << "get user chat node failed for touid " << touid << std::endl;
         return;
     }
 
@@ -104,8 +101,6 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     const int applicant_uid = root["fromuid"].asInt();
     const int accepter_uid = root["touid"].asInt();
     auto alias_name = root["alias_name"].asString();
-    std::cout << "auth friend: applicant " << applicant_uid << " accepter " << accepter_uid
-              << std::endl;
     Json::Value return_value;
     return_value["error"] = ErrorCodes::SUCCESS;
     auto user_info = std::make_shared<UserInfo>();
@@ -144,7 +139,6 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(applicant_uid);
     if (!peer_loc)
     {
-        std::cout << "get user chat node failed for applicant " << applicant_uid << std::endl;
         return;
     }
     const auto &self_name = ChatRuntimeConfig::getInstance().self().name;

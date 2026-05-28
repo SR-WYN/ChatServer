@@ -43,12 +43,10 @@ ConfigMgr::ConfigMgr()
     boost::filesystem::path current_path = boost::filesystem::current_path();
     boost::filesystem::path config_path = current_path / "config.json";
 
-    std::cout << "Loading config from: " << config_path << std::endl;
 
     std::ifstream file(config_path.string());
     if (!file.is_open())
     {
-        std::cerr << "Config file not found!" << std::endl;
         return;
     }
 
@@ -58,7 +56,6 @@ ConfigMgr::ConfigMgr()
     //解析失败
     if (!reader.parse(file, root))
     {
-        std::cerr << "JSON parse error!" << std::endl;
         file.close();
         return;
     }
@@ -81,7 +78,6 @@ ConfigMgr::ConfigMgr()
     // 打印加载结果用于验证
     for (auto const& [key,value] : _config_map)
     {
-        std::cout << "Section [" << key << "] loaded." << std::endl;
     }
 }
 

@@ -111,6 +111,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     hiredis
 
     mysqlcppconn
+    spdlog::spdlog
 
 )
 

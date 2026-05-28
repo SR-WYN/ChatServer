@@ -154,7 +154,6 @@ void UserCacheService::fillSearchResultByUid(const std::string &uid_str, Json::V
         return;
     }
 
-    std::cout << "get user by uid " << user_info->uid << " name " << user_info->name << std::endl;
     fillUserJson(*user_info, result);
 }
 
@@ -169,6 +168,5 @@ void UserCacheService::fillSearchResultByName(const std::string &name_str, Json:
         return;
     }
 
-    std::cout << "get user by name " << name_str << " uid " << user_info->uid << std::endl;
     fillUserJson(*user_info, result);
 }

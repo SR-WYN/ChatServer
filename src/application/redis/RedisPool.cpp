@@ -51,15 +51,12 @@ void RedisPool::initPool(std::size_t poolSize, const char *host, int port, const
         {
             if (reply)
             {
-                std::cout << reply->str << std::endl;
                 freeReplyObject(reply);
             }
-            std::cout << "认证失败" << std::endl;
             continue;
         }
 
         freeReplyObject(reply);
-        std::cout << "认证成功" << std::endl;
         _connections.push(context);
     }
 
@@ -166,7 +163,6 @@ bool RedisPool::reconnect()
     auto reply = (redisReply *)redisCommand(context, "AUTH %s", _pwd.c_str());
     if (reply == nullptr || reply->type == REDIS_REPLY_ERROR)
     {
-        std::cout << "认证失败" << std::endl;
         if (reply)
         {
             freeReplyObject(reply);
@@ -175,7 +171,6 @@ bool RedisPool::reconnect()
         return false;
     }
     freeReplyObject(reply);
-    std::cout << "认证成功" << std::endl;
     {
         std::lock_guard<std::mutex> lock(_mutex);
         _connections.push(context);
@@ -200,7 +195,6 @@ void RedisPool::checkThreadPro()
         auto reply = (redisReply *)redisCommand(context, "PING");
         if (context->err)
         {
-            std::cout << "Connection error: " << context->err << std::endl;
             if (reply)
             {
                 freeReplyObject(reply);
@@ -211,7 +205,6 @@ void RedisPool::checkThreadPro()
         }
         if (!reply || reply->type == REDIS_REPLY_ERROR)
         {
-            std::cout << "reply is nullptr,redis ping failed: " << std::endl;
             if (reply)
             {
                 freeReplyObject(reply);

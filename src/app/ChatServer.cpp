@@ -42,12 +42,10 @@ int main()
         std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
         if (!server)
         {
-            std::cerr << "Failed to start gRPC on " << server_address << std::endl;
             NodeHeartbeat::stop();
             StatusGrpcClient::getInstance().unregisterChatNode(self);
             return 1;
         }
-        std::cout << "Chat node " << self.name << " gRPC listening on " << server_address << std::endl;
 
         std::thread grpc_server_thread([&server]() { server->Wait(); });
 
@@ -60,8 +58,6 @@ int main()
         });
 
         CServer tcp_server(io_context, std::stoi(self.tcp_port));
-        std::cout << "Chat node " << self.name << " TCP listening on port " << self.tcp_port
-                  << std::endl;
         HeartBeatHandler::start(tcp_server);
         io_context.run();
         HeartBeatHandler::stop();
@@ -75,7 +71,6 @@ int main()
     }
     catch (std::exception &e)
     {
-        std::cerr << "Exception: " << e.what() << std::endl;
         if (ChatRuntimeConfig::getInstance().hasSelf())
         {
             NodeHeartbeat::stop();

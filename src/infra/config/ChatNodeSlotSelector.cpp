@@ -27,8 +27,6 @@ bool tryBindPort(const std::string &host, const std::string &port_str)
     }
     catch (const std::exception &e)
     {
-        std::cerr << "tryBindPort failed " << host << ":" << port_str << " (" << e.what() << ")"
-                  << std::endl;
         return false;
     }
 }
@@ -61,7 +59,6 @@ std::optional<SelfNodeProfile> ChatNodeSlotSelector::acquire()
     const std::string slots_csv = cfg["ChatNodePool"]["Slots"];
     if (slots_csv.empty())
     {
-        std::cerr << "ChatNodePool.Slots is empty" << std::endl;
         return std::nullopt;
     }
 
@@ -105,9 +102,6 @@ std::optional<SelfNodeProfile> ChatNodeSlotSelector::acquire()
         return profile;
     }
 
-    std::cerr << "No available chat node slot in ChatNodePool (ports may be in use; check "
-                 "8090-8092 / 50055-50057 or run: ss -tlnp | grep -E '809|5005')"
-              << std::endl;
     return std::nullopt;
 }
 
@@ -160,16 +154,9 @@ std::optional<SelfNodeProfile> ChatNodeSlotSelector::acquireAndRegister()
 
         if (StatusGrpcClient::getInstance().registerChatNode(profile))
         {
-            std::cout << "Registered chat node " << profile.name << " (slot " << slot_id
-                      << ", tcp=" << tcp_port << ", rpc=" << rpc_port << ")" << std::endl;
             return profile;
         }
-        std::cerr << "RegisterChatNode failed for " << profile.name
-                  << ", trying next slot (Status down or name still alive in Redis)" << std::endl;
     }
 
-    std::cerr << "No slot available: all ports busy or all node names still registered in Status. "
-                 "Wait ~30s after last crash or run: redis-cli HGETALL chat_nodes"
-              << std::endl;
     return std::nullopt;
 }

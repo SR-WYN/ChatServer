@@ -7,13 +7,11 @@ CServer::CServer(boost::asio::io_context &io_context, short port)
     : _io_context(io_context), _port(port),
       _acceptor(io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _port))
 {
-    std::cout << "Server start success, listen on port: " << _port << std::endl;
     StartAccept();
 }
 
 CServer::~CServer()
 {
-    std::cout << "Server destruct" << std::endl;
 }
 
 boost::asio::io_context &CServer::ioContext()
@@ -40,11 +38,9 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
         new_session->start();
         std::lock_guard<std::mutex> lock(_mutex);
         _sessions[new_session->getSessionId()] = new_session;
-        std::cout << "New session accepted: " << new_session->getSessionId() << std::endl;
     }
     else
     {
-        std::cout << "Accept error: " << error.message() << std::endl;
     }
     StartAccept();
 }
