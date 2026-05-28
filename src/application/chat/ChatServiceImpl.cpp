@@ -81,7 +81,7 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext *context, const AuthFrien
         return_value["icon"] = user_info->icon;
         return_value["sex"] = user_info->sex;
         std::string peer_alias;
-        MySqlMgr::getInstance().getFriendAlias(touid, fromuid, peer_alias);
+        MySqlMgr::getInstance().friends().getFriendAlias(touid, fromuid, peer_alias);
         return_value["alias_name"] = peer_alias;
     }
     else

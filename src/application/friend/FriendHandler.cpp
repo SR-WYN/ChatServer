@@ -37,7 +37,7 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
         session->send(return_str, MSG_ADD_FRIEND_RSP);
     });
 
-    MySqlMgr::getInstance().addFriendApply(uid, touid, alias_name);
+    MySqlMgr::getInstance().friends().addFriendApply(uid, touid, alias_name);
 
     auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(touid);
     if (!peer_loc)
@@ -131,15 +131,16 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     });
 
     std::string alias_applicant_for_accepter;
-    MySqlMgr::getInstance().getFriendApplyAlias(applicant_uid, accepter_uid,
-                                                alias_applicant_for_accepter);
+    MySqlMgr::getInstance().friends().getFriendApplyAlias(applicant_uid, accepter_uid,
+                                                          alias_applicant_for_accepter);
 
-    MySqlMgr::getInstance().authFriendApply(applicant_uid, accepter_uid);
-    MySqlMgr::getInstance().addFriend(applicant_uid, accepter_uid, alias_applicant_for_accepter,
-                                      alias_name);
+    MySqlMgr::getInstance().friends().authFriendApply(applicant_uid, accepter_uid);
+    MySqlMgr::getInstance().friends().addFriend(applicant_uid, accepter_uid,
+                                                alias_applicant_for_accepter, alias_name);
 
     std::string applicant_peer_alias;
-    MySqlMgr::getInstance().getFriendAlias(applicant_uid, accepter_uid, applicant_peer_alias);
+    MySqlMgr::getInstance().friends().getFriendAlias(applicant_uid, accepter_uid,
+                                                     applicant_peer_alias);
     auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(applicant_uid);
     if (!peer_loc)
     {
@@ -179,5 +180,6 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     auth_req.set_fromuid(accepter_uid);
     auth_req.set_touid(applicant_uid);
 
-    ChatGrpcClient::getInstance().NotifyAuthFriend(peer_loc->rpc_host, peer_loc->rpc_port, auth_req);
+    ChatGrpcClient::getInstance().NotifyAuthFriend(peer_loc->rpc_host, peer_loc->rpc_port,
+                                                   auth_req);
 }

@@ -89,7 +89,7 @@ bool UserCacheService::getByUid(int uid, std::shared_ptr<UserInfo> user_info)
         return true;
     }
 
-    auto db_user = MySqlMgr::getInstance().getUserInfo(uid);
+    auto db_user = MySqlMgr::getInstance().users().getUserInfo(uid);
     if (!db_user)
     {
         return false;
@@ -117,7 +117,7 @@ bool UserCacheService::getByName(const std::string &name, std::shared_ptr<UserIn
         return true;
     }
 
-    auto db_user = MySqlMgr::getInstance().getUserInfo(name);
+    auto db_user = MySqlMgr::getInstance().users().getUserInfo(name);
     if (!db_user)
     {
         return false;

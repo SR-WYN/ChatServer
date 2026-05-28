@@ -3,9 +3,9 @@
 #include "ChatRuntimeConfig.h"
 #include "ConfigMgr.h"
 #include "MySqlMgr.h"
-#include "StatusGrpcClient.h"
 #include "OfflineSyncService.h"
 #include "RedisMgr.h"
+#include "StatusGrpcClient.h"
 #include "UserCacheService.h"
 #include "UserMgr.h"
 #include "const.h"
@@ -140,10 +140,10 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
 
 bool LoginHandler::getFriendApplyInfo(int touid, std::vector<std::shared_ptr<ApplyInfo>> &list)
 {
-    return MySqlMgr::getInstance().getApplyList(touid, list);
+    return MySqlMgr::getInstance().friends().getApplyList(touid, list);
 }
 
 bool LoginHandler::getFriendList(int uid, std::vector<std::shared_ptr<UserInfo>> &list)
 {
-    return MySqlMgr::getInstance().getFriendList(uid, list);
+    return MySqlMgr::getInstance().friends().getFriendList(uid, list);
 }

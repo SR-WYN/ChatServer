@@ -1,116 +1,87 @@
 #include "ChatMessageDao.h"
-#include "MySqlPool.h"
-#include "utils.h"
-#include <cppconn/exception.h>
+#include "DbSession.h"
+#include <cppconn/connection.h>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
 #include <iostream>
+#include <memory>
+#include <string>
+
+namespace
+{
+bool readMsgId(sql::Connection &conn, int from_uid, const std::string &client_msg_id,
+               uint64_t &out_db_id)
+{
+    auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(
+        "SELECT id FROM chat_message WHERE from_uid = ? AND client_msg_id = ? LIMIT 1"));
+    stmt->setInt(1, from_uid);
+    stmt->setString(2, client_msg_id);
+    auto rs = std::unique_ptr<sql::ResultSet>(stmt->executeQuery());
+    if (!rs->next())
+    {
+        return false;
+    }
+    out_db_id = static_cast<uint64_t>(rs->getUInt64("id"));
+    return true;
+}
+
+ChatMessage readChatMsg(sql::ResultSet &rs)
+{
+    ChatMessage msg;
+    msg.id = static_cast<uint64_t>(rs.getUInt64("id"));
+    msg.client_msg_id = rs.getString("client_msg_id");
+    msg.from_uid = rs.getInt("from_uid");
+    msg.to_uid = rs.getInt("to_uid");
+    msg.content = rs.getString("content");
+    return msg;
+}
+} // namespace
 
 bool ChatMessageDao::saveMessage(const ChatMessage &msg, uint64_t &out_db_id)
 {
-    auto &pool = MySqlPool::getInstance();
-    auto con = pool.getConnection();
-    if (con == nullptr)
-    {
-        return false;
-    }
-
-    utils::Defer defer([&pool, &con]() { pool.returnConnection(std::move(con)); });
-
-    try
-    {
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-            "INSERT INTO chat_message (client_msg_id, from_uid, to_uid, content) VALUES (?,?,?,?)"));
-        pstmt->setString(1, msg.client_msg_id);
-        pstmt->setInt(2, msg.from_uid);
-        pstmt->setInt(3, msg.to_uid);
-        pstmt->setString(4, msg.content);
-        pstmt->executeUpdate();
-
-        std::unique_ptr<sql::PreparedStatement> sel(con->_con->prepareStatement(
-            "SELECT id FROM chat_message WHERE from_uid = ? AND client_msg_id = ? LIMIT 1"));
-        sel->setInt(1, msg.from_uid);
-        sel->setString(2, msg.client_msg_id);
-        std::unique_ptr<sql::ResultSet> res(sel->executeQuery());
-        if (res->next())
+    return DbSession::withConn([&](sql::Connection &conn) {
+        try
         {
-            out_db_id = static_cast<uint64_t>(res->getUInt64("id"));
-            return true;
+            auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(
+                "INSERT INTO chat_message (client_msg_id, from_uid, to_uid, content) "
+                "VALUES (?,?,?,?)"));
+            stmt->setString(1, msg.client_msg_id);
+            stmt->setInt(2, msg.from_uid);
+            stmt->setInt(3, msg.to_uid);
+            stmt->setString(4, msg.content);
+            stmt->executeUpdate();
+            return readMsgId(conn, msg.from_uid, msg.client_msg_id, out_db_id);
         }
-        return false;
-    }
-    catch (sql::SQLException &e)
-    {
-        if (e.getErrorCode() == 1062)
+        catch (sql::SQLException &e)
         {
-            std::unique_ptr<sql::PreparedStatement> sel(con->_con->prepareStatement(
-                "SELECT id FROM chat_message WHERE from_uid = ? AND client_msg_id = ? LIMIT 1"));
-            sel->setInt(1, msg.from_uid);
-            sel->setString(2, msg.client_msg_id);
-            std::unique_ptr<sql::ResultSet> res(sel->executeQuery());
-            if (res->next())
+            if (e.getErrorCode() != 1062)
             {
-                out_db_id = static_cast<uint64_t>(res->getUInt64("id"));
-                return true;
+                throw;
             }
+            return readMsgId(conn, msg.from_uid, msg.client_msg_id, out_db_id);
         }
-        std::cerr << "saveMessage SQLException: " << e.what() << std::endl;
-        return false;
-    }
+    });
 }
 
 bool ChatMessageDao::existsByClientMsgId(int from_uid, const std::string &client_msg_id)
 {
-    auto &pool = MySqlPool::getInstance();
-    auto con = pool.getConnection();
-    if (con == nullptr)
-    {
-        return false;
-    }
-
-    utils::Defer defer([&pool, &con]() { pool.returnConnection(std::move(con)); });
-
-    try
-    {
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-            "SELECT 1 FROM chat_message WHERE from_uid = ? AND client_msg_id = ? LIMIT 1"));
-        pstmt->setInt(1, from_uid);
-        pstmt->setString(2, client_msg_id);
-        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        return res->next();
-    }
-    catch (sql::SQLException &e)
-    {
-        std::cerr << "existsByClientMsgId SQLException: " << e.what() << std::endl;
-        return false;
-    }
+    return DbSession::queryOne(
+        "SELECT 1 FROM chat_message WHERE from_uid = ? AND client_msg_id = ? LIMIT 1",
+        [&](sql::PreparedStatement &stmt) {
+            stmt.setInt(1, from_uid);
+            stmt.setString(2, client_msg_id);
+        },
+        [](sql::ResultSet &) { return true; });
 }
 
 bool ChatMessageDao::enqueueOffline(uint64_t message_id, int owner_uid)
 {
-    auto &pool = MySqlPool::getInstance();
-    auto con = pool.getConnection();
-    if (con == nullptr)
-    {
-        return false;
-    }
-
-    utils::Defer defer([&pool, &con]() { pool.returnConnection(std::move(con)); });
-
-    try
-    {
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-            "INSERT IGNORE INTO chat_offline_inbox (owner_uid, message_id) VALUES (?,?)"));
-        pstmt->setInt(1, owner_uid);
-        pstmt->setUInt64(2, message_id);
-        pstmt->executeUpdate();
-        return true;
-    }
-    catch (sql::SQLException &e)
-    {
-        std::cerr << "enqueueOffline SQLException: " << e.what() << std::endl;
-        return false;
-    }
+    return DbSession::exec(
+               "INSERT IGNORE INTO chat_offline_inbox (owner_uid, message_id) VALUES (?,?)",
+               [&](sql::PreparedStatement &stmt) {
+                   stmt.setInt(1, owner_uid);
+                   stmt.setUInt64(2, message_id);
+               }) >= 0;
 }
 
 bool ChatMessageDao::fetchOfflineBatch(int owner_uid, int limit, std::vector<ChatMessage> &out,
@@ -118,44 +89,37 @@ bool ChatMessageDao::fetchOfflineBatch(int owner_uid, int limit, std::vector<Cha
 {
     out.clear();
     out_inbox_ids.clear();
-
-    auto &pool = MySqlPool::getInstance();
-    auto con = pool.getConnection();
-    if (con == nullptr)
+    struct OfflineRow
     {
-        return false;
-    }
-
-    utils::Defer defer([&pool, &con]() { pool.returnConnection(std::move(con)); });
-
-    try
-    {
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
+        uint64_t inbox_id;
+        ChatMessage msg;
+    };
+    std::vector<OfflineRow> rows;
+    if (!DbSession::queryAll(
             "SELECT inbox.id AS inbox_id, m.id, m.client_msg_id, m.from_uid, m.to_uid, m.content "
             "FROM chat_offline_inbox AS inbox "
             "JOIN chat_message AS m ON inbox.message_id = m.id "
-            "WHERE inbox.owner_uid = ? ORDER BY inbox.id ASC LIMIT ?"));
-        pstmt->setInt(1, owner_uid);
-        pstmt->setInt(2, limit);
-        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        while (res->next())
-        {
-            out_inbox_ids.push_back(static_cast<uint64_t>(res->getUInt64("inbox_id")));
-            ChatMessage msg;
-            msg.id = static_cast<uint64_t>(res->getUInt64("id"));
-            msg.client_msg_id = res->getString("client_msg_id");
-            msg.from_uid = res->getInt("from_uid");
-            msg.to_uid = res->getInt("to_uid");
-            msg.content = res->getString("content");
-            out.push_back(std::move(msg));
-        }
-        return true;
-    }
-    catch (sql::SQLException &e)
+            "WHERE inbox.owner_uid = ? ORDER BY inbox.id ASC LIMIT ?",
+            [&](sql::PreparedStatement &stmt) {
+                stmt.setInt(1, owner_uid);
+                stmt.setInt(2, limit);
+            },
+            [](sql::ResultSet &rs) {
+                OfflineRow row;
+                row.inbox_id = static_cast<uint64_t>(rs.getUInt64("inbox_id"));
+                row.msg = readChatMsg(rs);
+                return row;
+            },
+            rows))
     {
-        std::cerr << "fetchOfflineBatch SQLException: " << e.what() << std::endl;
         return false;
     }
+    for (const auto &row : rows)
+    {
+        out_inbox_ids.push_back(row.inbox_id);
+        out.push_back(row.msg);
+    }
+    return true;
 }
 
 bool ChatMessageDao::queryHistory(int self_uid, int peer_uid, uint64_t before_id, int limit,
@@ -171,57 +135,36 @@ bool ChatMessageDao::queryHistory(int self_uid, int peer_uid, uint64_t before_id
         limit = 200;
     }
 
-    auto &pool = MySqlPool::getInstance();
-    auto con = pool.getConnection();
-    if (con == nullptr)
+    std::string sql =
+        "SELECT id, client_msg_id, from_uid, to_uid, content FROM chat_message "
+        "WHERE ((from_uid = ? AND to_uid = ?) OR (from_uid = ? AND to_uid = ?)) ";
+    if (before_id > 0)
+    {
+        sql += "AND id < ? ";
+    }
+    sql += "ORDER BY id DESC LIMIT " + std::to_string(limit);
+
+    std::vector<ChatMessage> reversed;
+    if (!DbSession::queryAll(
+            sql,
+            [&](sql::PreparedStatement &stmt) {
+                int idx = 1;
+                stmt.setInt(idx++, self_uid);
+                stmt.setInt(idx++, peer_uid);
+                stmt.setInt(idx++, peer_uid);
+                stmt.setInt(idx++, self_uid);
+                if (before_id > 0)
+                {
+                    stmt.setUInt64(idx++, before_id);
+                }
+            },
+            [](sql::ResultSet &rs) { return readChatMsg(rs); },
+            reversed))
     {
         return false;
     }
-
-    utils::Defer defer([&pool, &con]() { pool.returnConnection(std::move(con)); });
-
-    try
-    {
-        std::string sql =
-            "SELECT id, client_msg_id, from_uid, to_uid, content FROM chat_message "
-            "WHERE ((from_uid = ? AND to_uid = ?) OR (from_uid = ? AND to_uid = ?)) ";
-        if (before_id > 0)
-        {
-            sql += "AND id < ? ";
-        }
-        sql += "ORDER BY id DESC LIMIT " + std::to_string(limit);
-
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(sql));
-        int idx = 1;
-        pstmt->setInt(idx++, self_uid);
-        pstmt->setInt(idx++, peer_uid);
-        pstmt->setInt(idx++, peer_uid);
-        pstmt->setInt(idx++, self_uid);
-        if (before_id > 0)
-        {
-            pstmt->setUInt64(idx++, before_id);
-        }
-
-        std::vector<ChatMessage> reversed;
-        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        while (res->next())
-        {
-            ChatMessage msg;
-            msg.id = static_cast<uint64_t>(res->getUInt64("id"));
-            msg.client_msg_id = res->getString("client_msg_id");
-            msg.from_uid = res->getInt("from_uid");
-            msg.to_uid = res->getInt("to_uid");
-            msg.content = res->getString("content");
-            reversed.push_back(std::move(msg));
-        }
-        out.assign(reversed.rbegin(), reversed.rend());
-        return true;
-    }
-    catch (sql::SQLException &e)
-    {
-        std::cerr << "queryHistory SQLException: " << e.what() << std::endl;
-        return false;
-    }
+    out.assign(reversed.rbegin(), reversed.rend());
+    return true;
 }
 
 bool ChatMessageDao::removeOfflineByIds(const std::vector<uint64_t> &inbox_ids)
@@ -231,39 +174,21 @@ bool ChatMessageDao::removeOfflineByIds(const std::vector<uint64_t> &inbox_ids)
         return true;
     }
 
-    auto &pool = MySqlPool::getInstance();
-    auto con = pool.getConnection();
-    if (con == nullptr)
+    std::string sql = "DELETE FROM chat_offline_inbox WHERE id IN (";
+    for (size_t i = 0; i < inbox_ids.size(); ++i)
     {
-        return false;
-    }
-
-    utils::Defer defer([&pool, &con]() { pool.returnConnection(std::move(con)); });
-
-    try
-    {
-        std::string placeholders;
-        for (size_t i = 0; i < inbox_ids.size(); ++i)
+        if (i > 0)
         {
-            if (i > 0)
-            {
-                placeholders += ",";
-            }
-            placeholders += "?";
+            sql += ",";
         }
-        const std::string sql =
-            "DELETE FROM chat_offline_inbox WHERE id IN (" + placeholders + ")";
-        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(sql));
-        for (size_t i = 0; i < inbox_ids.size(); ++i)
-        {
-            pstmt->setUInt64(static_cast<unsigned int>(i + 1), inbox_ids[i]);
-        }
-        pstmt->executeUpdate();
-        return true;
+        sql += "?";
     }
-    catch (sql::SQLException &e)
-    {
-        std::cerr << "removeOfflineByIds SQLException: " << e.what() << std::endl;
-        return false;
-    }
+    sql += ")";
+
+    return DbSession::exec(sql, [&](sql::PreparedStatement &stmt) {
+               for (size_t i = 0; i < inbox_ids.size(); ++i)
+               {
+                   stmt.setUInt64(static_cast<unsigned int>(i + 1), inbox_ids[i]);
+               }
+           }) >= 0;
 }
