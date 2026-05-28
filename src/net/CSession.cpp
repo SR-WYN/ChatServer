@@ -3,7 +3,9 @@
 #include "LogicSystem.h"
 #include "MsgNode.h"
 #include "const.h"
+#include "ChatRuntimeConfig.h"
 #include "ConfigMgr.h"
+#include "StatusGrpcClient.h"
 #include "RedisMgr.h"
 #include "UserMgr.h"
 #include <boost/asio/detail/socket_ops.hpp>
@@ -258,7 +260,8 @@ void CSession::close()
 
     if (_user_uid > 0)
     {
-        auto server_name = ConfigMgr::getInstance()["SelfServer"]["Name"];
+        const auto &server_name = ChatRuntimeConfig::getInstance().self().name;
+        StatusGrpcClient::getInstance().unbindUser(_user_uid);
         auto rd_res = RedisMgr::getInstance().hGet(RedisPrefix::LOGIN_COUNT, server_name);
         int count = 0;
         if (!rd_res.empty())

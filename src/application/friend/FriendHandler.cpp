@@ -1,9 +1,9 @@
 #include "FriendHandler.h"
 #include "CSession.h"
 #include "ChatGrpcClient.h"
-#include "ConfigMgr.h"
+#include "ChatRuntimeConfig.h"
 #include "MySqlMgr.h"
-#include "RedisMgr.h"
+#include "StatusGrpcClient.h"
 #include "UserCacheService.h"
 #include "UserMgr.h"
 #include "const.h"
@@ -39,24 +39,18 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
 
     MySqlMgr::getInstance().addFriendApply(uid, touid, alias_name);
 
-    // 查询Redis 查找touid对应的server ip
-    auto to_str = std::to_string(touid);
-    auto to_ip_key = RedisPrefix::USERIPPREFIX + to_str;
-    std::string to_ip_value = "";
-    bool b_ip = RedisMgr::getInstance().get(to_ip_key, to_ip_value);
-    if (!b_ip)
+    auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(touid);
+    if (!peer_loc)
     {
-        std::cout << "get to ip failed" << std::endl;
+        std::cout << "get user chat node failed for touid " << touid << std::endl;
         return;
     }
 
     auto apply_info = std::make_shared<UserInfo>();
     bool b_info = UserCacheService::getByUid(uid, apply_info);
 
-    auto &cfg = ConfigMgr::getInstance();
-    auto self_name = cfg["SelfServer"]["Name"];
-    // 直接通知对方有申请消息（字段与 ChatServiceImpl::NotifyAddFriend 一致）
-    if (to_ip_value == self_name)
+    const auto &self_name = ChatRuntimeConfig::getInstance().self().name;
+    if (peer_loc->node_name == self_name)
     {
         auto to_user_session = UserMgr::getInstance().getSession(touid);
         if (to_user_session)
@@ -97,8 +91,7 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
         add_req.set_sex(apply_info->sex);
     }
     add_req.set_alias_name(alias_name);
-    // 发送请求到对方服务器
-    ChatGrpcClient::getInstance().NotifyAddFriend(to_ip_value, add_req);
+    ChatGrpcClient::getInstance().NotifyAddFriend(peer_loc->rpc_host, peer_loc->rpc_port, add_req);
 }
 
 void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const short &msg_id,
@@ -147,18 +140,14 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
 
     std::string applicant_peer_alias;
     MySqlMgr::getInstance().getFriendAlias(applicant_uid, accepter_uid, applicant_peer_alias);
-    // 通知申请人所在 Chat 节点（与 ChatServiceImpl::NotifyAuthFriend 中 touid 为收包用户一致）
-    auto to_ip_key = RedisPrefix::USERIPPREFIX + std::to_string(applicant_uid);
-    std::string to_ip_value = "";
-    bool b_ip = RedisMgr::getInstance().get(to_ip_key, to_ip_value);
-    if (!b_ip)
+    auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(applicant_uid);
+    if (!peer_loc)
     {
-        std::cout << "get to ip failed" << std::endl;
+        std::cout << "get user chat node failed for applicant " << applicant_uid << std::endl;
         return;
     }
-    auto &cfg = ConfigMgr::getInstance();
-    auto self_name = cfg["SelfServer"]["Name"];
-    if (to_ip_value == self_name)
+    const auto &self_name = ChatRuntimeConfig::getInstance().self().name;
+    if (peer_loc->node_name == self_name)
     {
         auto peer_session = UserMgr::getInstance().getSession(applicant_uid);
         if (peer_session)
@@ -190,5 +179,5 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     auth_req.set_fromuid(accepter_uid);
     auth_req.set_touid(applicant_uid);
 
-    ChatGrpcClient::getInstance().NotifyAuthFriend(to_ip_value, auth_req);
+    ChatGrpcClient::getInstance().NotifyAuthFriend(peer_loc->rpc_host, peer_loc->rpc_port, auth_req);
 }

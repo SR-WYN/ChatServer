@@ -37,11 +37,16 @@ class ChatGrpcClient : public Singleton<ChatGrpcClient>
 
 public:
     ~ChatGrpcClient() override;
-    AddFriendRsp NotifyAddFriend(std::string server_ip,const AddFriendReq& req);
-    AuthFriendRsp NotifyAuthFriend(std::string server_ip,const AuthFriendReq& req);
-    bool GetBaseInfo(std::string base_key,int uid,std::shared_ptr<UserInfo>& user_info);
-    TextChatMsgRsp NotifyTextChatMsg(std::string server_ip,const TextChatMsgReq& req,const Json::Value& root_value);
+    AddFriendRsp NotifyAddFriend(const std::string &rpc_host, const std::string &rpc_port,
+                               const AddFriendReq &req);
+    AuthFriendRsp NotifyAuthFriend(const std::string &rpc_host, const std::string &rpc_port,
+                                   const AuthFriendReq &req);
+    bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo> &user_info);
+    TextChatMsgRsp NotifyTextChatMsg(const std::string &rpc_host, const std::string &rpc_port,
+                                     const TextChatMsgReq &req, const Json::Value &root_value);
+
 private:
     ChatGrpcClient();
-    std::unordered_map<std::string,std::unique_ptr<ChatConPool>> _pools;
+    ChatConPool &getOrCreatePool(const std::string &host, const std::string &port);
+    std::unordered_map<std::string, std::unique_ptr<ChatConPool>> _pools;
 };

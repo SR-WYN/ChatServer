@@ -1,7 +1,9 @@
 #include "LoginHandler.h"
 #include "CSession.h"
+#include "ChatRuntimeConfig.h"
 #include "ConfigMgr.h"
 #include "MySqlMgr.h"
+#include "StatusGrpcClient.h"
 #include "OfflineSyncService.h"
 #include "RedisMgr.h"
 #include "UserCacheService.h"
@@ -106,7 +108,9 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
         obj["alias_name"] = friend_element->alias_name;
         return_value["friend_list"].append(obj);
     }
-    auto server_name = ConfigMgr::getInstance()["SelfServer"]["Name"];
+    const auto &self = ChatRuntimeConfig::getInstance().self();
+    const std::string &server_name = self.name;
+    StatusGrpcClient::getInstance().bindUserToNode(uid, server_name);
     // 将登录数量增加
     auto rd_res = RedisMgr::getInstance().hGet(RedisPrefix::LOGIN_COUNT, server_name);
     int count = 0;

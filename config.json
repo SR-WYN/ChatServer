@@ -1,40 +1,43 @@
 {
-  "SelfServer": {
-    "Host": "0.0.0.0",
-    "Port": "8090",
-    "Name": "ChatServer1",
-    "RPCPort": 50055
+  "ChatNodePool": {
+    "Slots": "slot0,slot1,slot2",
+    "ClientAdvertiseHost": "127.0.0.1",
+    "RpcAdvertiseHost": "127.0.0.1"
+  },
+  "slot0": {
+    "TcpPort": "8090",
+    "RpcPort": "50055"
+  },
+  "slot1": {
+    "TcpPort": "8091",
+    "RpcPort": "50056"
+  },
+  "slot2": {
+    "TcpPort": "8092",
+    "RpcPort": "50057"
   },
   "GateServer": {
-    "Port": 7979,
+    "Port": "7979",
     "host": "127.0.0.1"
   },
   "VerifyServer": {
     "Host": "127.0.0.1",
-    "Port": 50051
+    "Port": "50051"
   },
   "MySql": {
     "Host": "127.0.0.1",
     "Passwd": "root",
-    "Port": 3307,
+    "Port": "3307",
     "Schema": "loadbalancer",
     "User": "root"
   },
   "Redis": {
     "Host": "127.0.0.1",
     "Passwd": "123456",
-    "Port": 6379
+    "Port": "6379"
   },
   "StatusServer": {
     "Host": "127.0.0.1",
-    "Port": 50052
-  },
-  "PeerServer": {
-    "Servers": "ChatServer2"
-  },
-  "ChatServer2": {
-    "Name": "ChatServer2",
-    "Host": "127.0.0.1",
-    "Port": 50056
+    "Port": "50052"
   }
 }
