@@ -1,5 +1,6 @@
 #include "RedisMgr.h"
 #include "RedisPool.h"
+#include "RedisSession.h"
 
 RedisMgr::RedisMgr()
 {
@@ -10,27 +11,27 @@ RedisMgr::~RedisMgr() = default;
 
 bool RedisMgr::get(const std::string &key, std::string &value)
 {
-    return _cache_dao.get(key, value);
+    return RedisSession::get(key, value);
 }
 
 bool RedisMgr::set(const std::string &key, const std::string &value)
 {
-    return _cache_dao.set(key, value);
+    return RedisSession::set(key, value);
 }
 
-bool RedisMgr::hSet(const char *key, const char *hkey, const char *hvalue, size_t hvaluelen)
+bool RedisMgr::hSet(const char *key, const char *field, const char *val, size_t vallen)
 {
-    return _login_dao.hSet(key, hkey, hvalue, hvaluelen);
+    return RedisSession::hSet(std::string(key), std::string(field), std::string(val, vallen));
 }
 
-std::string RedisMgr::hGet(const std::string &key, const std::string &hkey)
+std::string RedisMgr::hGet(const std::string &key, const std::string &field)
 {
-    return _login_dao.hGet(key, hkey);
+    return RedisSession::hGet(key, field);
 }
 
-bool RedisMgr::hSet(const std::string &key, const std::string &hkey, const std::string &value)
+bool RedisMgr::hSet(const std::string &key, const std::string &field, const std::string &value)
 {
-    return _login_dao.hSet(key, hkey, value);
+    return RedisSession::hSet(key, field, value);
 }
 
 void RedisMgr::close()
@@ -40,5 +41,5 @@ void RedisMgr::close()
 
 bool RedisMgr::hDel(const std::string &key, const std::string &field)
 {
-    return _login_dao.hDel(key, field);
+    return RedisSession::hDel(key, field);
 }

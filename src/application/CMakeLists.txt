@@ -3,10 +3,8 @@ add_library(cs_application STATIC
     mysql/MySqlPool.cpp
     mysql/MySqlMgr.cpp
     redis/RedisPool.cpp
-    redis/CacheRedisDao.cpp
     redis/RedisMgr.cpp
     login/LoginHandler.cpp
-    login/LoginRedisDao.cpp
     user/UserHandler.cpp
     user/UserDao.cpp
     user/UserCacheService.cpp
