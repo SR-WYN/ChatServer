@@ -1,10 +1,6 @@
 # 扁平 #include：各子目录均加入 INTERFACE，源文件写 "Foo.h" 即可
 
-
-
 set_source_files_properties(${PROTO_SRCS} PROPERTIES GENERATED TRUE)
-
-
 
 add_library(chatserver_includes INTERFACE)
 
@@ -38,8 +34,6 @@ target_include_directories(chatserver_includes INTERFACE
 
 )
 
-
-
 add_subdirectory(common)
 
 add_subdirectory(domain)
@@ -54,8 +48,6 @@ add_subdirectory(application)
 
 add_subdirectory(app)
 
-
-
 add_executable(${PROJECT_NAME}
 
     app/ChatServer.cpp
@@ -64,19 +56,13 @@ add_executable(${PROJECT_NAME}
 
 )
 
-
-
 set_target_properties(${PROJECT_NAME} PROPERTIES
 
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 
 )
 
-
-
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
-
-
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 
@@ -108,14 +94,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
     protobuf::libprotobuf
 
+    redis++
+
     hiredis
 
     mysqlcppconn
     spdlog::spdlog
 
 )
-
-
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -125,4 +111,3 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/src/logdir"
     COMMENT "Copying config.json and creating src/logdir..."
 )
-

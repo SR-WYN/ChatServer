@@ -14,6 +14,10 @@ find_package(spdlog CONFIG REQUIRED)
 find_library(HIREDIS_LIB hiredis REQUIRED)
 find_program(MYSQL_CONFIG_EXECUTABLE NAMES mysql_config)
 
+# redis++ 依赖 hiredis，通过 hiredis_DIR 缓存变量指定路径
+set(hiredis_DIR "/usr/lib/x86_64-linux-gnu/cmake/Hiredis" CACHE PATH "Path to hiredis cmake config" FORCE)
+find_package(redis++ REQUIRED)
+
 find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
 
 # --- Proto 生成 ---

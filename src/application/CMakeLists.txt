@@ -2,7 +2,6 @@ add_library(cs_application STATIC
     LogicSystem.cpp
     mysql/MySqlPool.cpp
     mysql/MySqlMgr.cpp
-    redis/RedisPool.cpp
     redis/RedisMgr.cpp
     login/LoginHandler.cpp
     user/UserHandler.cpp
@@ -30,5 +29,5 @@ target_link_libraries(cs_application PUBLIC
     cs_config
     cs_grpc
     mysqlcppconn
-    hiredis
+    redis++
 )
