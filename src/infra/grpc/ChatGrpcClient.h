@@ -41,7 +41,6 @@ public:
                                const AddFriendReq &req);
     AuthFriendRsp NotifyAuthFriend(const std::string &rpc_host, const std::string &rpc_port,
                                    const AuthFriendReq &req);
-    bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo> &user_info);
     TextChatMsgRsp NotifyTextChatMsg(const std::string &rpc_host, const std::string &rpc_port,
                                      const TextChatMsgReq &req, const Json::Value &root_value);
 

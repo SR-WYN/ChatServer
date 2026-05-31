@@ -1,7 +1,4 @@
 #pragma once
-
-#include <iostream>
-
 template <typename T>
 class Singleton
 {
@@ -10,7 +7,6 @@ protected:
     virtual ~Singleton()
     {
     }
-
     Singleton(const Singleton&) = delete;
     Singleton& operator=(const Singleton&) = delete;
 public:
@@ -19,13 +15,8 @@ public:
         static T instance;
         return instance;
     }
-
     static T *getInstancePtr()
     {
         return &getInstance();
-    }
-
-    void printAddress()
-    {
     }
 };

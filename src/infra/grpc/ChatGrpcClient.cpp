@@ -85,14 +85,6 @@ AuthFriendRsp ChatGrpcClient::NotifyAuthFriend(const std::string &rpc_host, cons
     return rsp;
 }
 
-bool ChatGrpcClient::GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo> &user_info)
-{
-    (void)base_key;
-    (void)uid;
-    (void)user_info;
-    return true;
-}
-
 TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(const std::string &rpc_host, const std::string &rpc_port,
                                                  const TextChatMsgReq &req, const Json::Value &root_value)
 {

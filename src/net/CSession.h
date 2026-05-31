@@ -28,7 +28,6 @@ public:
     void send(const char *msg, short body_len, short msgid);
     void send(std::string msg, short msgid);
     void close();
-    std::shared_ptr<CSession> shared_self();
     void AsyncReadBody(int length);
     void AsyncReadHead(int total_len);
     void touchActivity();
