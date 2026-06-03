@@ -6,82 +6,36 @@
 #include "MsgNode.h"
 #include "ChatHistoryHandler.h"
 #include "TextChatHandler.h"
+#include "ThreadPoolMgr.h"
 #include "UserHandler.h"
 #include "const.h"
 #include <iostream>
 #include <memory>
 #include <string>
 
-LogicSystem::LogicSystem() : _b_stop(false)
+LogicSystem::LogicSystem()
 {
     registerCallBacks();
-    _worker_thread = std::thread([this]() {
-        this->dealMsg();
-    });
 }
 
 LogicSystem::~LogicSystem()
 {
-    _b_stop = true;
-    _consume.notify_all();
-    _worker_thread.join();
 }
 
 void LogicSystem::postMsgToQue(std::shared_ptr<LogicNode> msg)
 {
-    std::unique_lock<std::mutex> lock(_mutex);
-    _msg_que.push(msg);
-    if (_msg_que.size() == 1)
-    {
-        lock.unlock();
-        _consume.notify_one();
-    }
-}
-
-void LogicSystem::dealMsg()
-{
-    while (true)
-    {
-        std::unique_lock<std::mutex> lock(_mutex);
-        while (_msg_que.empty() && !_b_stop)
-        {
-            _consume.wait(lock);
-        }
-
-        if (_b_stop)
-        {
-            while (!_msg_que.empty())
-            {
-                auto msg_node = _msg_que.front();
-                auto call_back_iter = _fun_callbacks.find(msg_node->getRecvNode()->getMsgId());
-                if (call_back_iter == _fun_callbacks.end())
-                {
-                    _msg_que.pop();
-                    continue;
-                }
-                HeartBeatHandler::touchSessionActivity(msg_node->getSession());
-                call_back_iter->second(msg_node->getSession(), msg_node->getRecvNode()->getMsgId(),
-                                       std::string(msg_node->getRecvNode()->getData(),
-                                                   msg_node->getRecvNode()->getCurLen()));
-                _msg_que.pop();
-            }
-            break;
-        }
-
-        auto msg_node = _msg_que.front();
-        auto call_back_iter = _fun_callbacks.find(msg_node->getRecvNode()->getMsgId());
+    ThreadPoolMgr::getInstance().getLogicPool().enqueue([this, msg]() {
+        auto call_back_iter = _fun_callbacks.find(msg->getRecvNode()->getMsgId());
         if (call_back_iter == _fun_callbacks.end())
         {
-            _msg_que.pop();
-            continue;
+            return;
         }
 
-        HeartBeatHandler::touchSessionActivity(msg_node->getSession());
+        HeartBeatHandler::touchSessionActivity(msg->getSession());
         call_back_iter->second(
-            msg_node->getSession(), msg_node->getRecvNode()->getMsgId(),
-            std::string(msg_node->getRecvNode()->getData(), msg_node->getRecvNode()->getCurLen()));
-        _msg_que.pop();
-    }
+            msg->getSession(), msg->getRecvNode()->getMsgId(),
+            std::string(msg->getRecvNode()->getData(), msg->getRecvNode()->getCurLen()));
+    });
 }
 
 void LogicSystem::registerCallBacks()
