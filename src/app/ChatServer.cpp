@@ -1,7 +1,5 @@
 #include "AsioIOServicePool.h"
 #include "CServer.h"
-#include "ChatNodeSlotSelector.h"
-#include "ChatRuntimeConfig.h"
 #include "ChatServiceImpl.h"
 #include "ConfigMgr.h"
 #include "HeartBeatHandler.h"
@@ -10,8 +8,10 @@
 #include "NodeHeartbeat.h"
 #include "PersistWorker.h"
 #include "RedisMgr.h"
+#include "RuntimeContext.h"
 #include "StatusGrpcClient.h"
 #include "const.h"
+#include "utils.h"
 #include <csignal>
 #include <grpcpp/grpcpp.h>
 #include <iostream>
@@ -22,29 +22,45 @@ int main()
 {
     try
     {
+        // ---- 1. 加载环境变量 ----
+        utils::loadEnvFile(".env");
+
+        // ---- 2. 初始化基础设施 ----
         ConfigMgr::getInstance();
         if (!Log::init("ChatServer", ConfigMgr::getInstance().getLogConfig()))
         {
             return 1;
         }
-        Log::info(LogModule::App, "ChatServer starting");
+        LOGI(LogModule::App, "ChatServer starting");
 
-        auto slot = ChatNodeSlotSelector::acquireAndRegister();
+        // ---- 3. 向 StatusServer 注册当前节点 ----
+        // 遍历配置槽位，找到端口可用且注册成功的 slot
+        auto slot = RuntimeContext::tryRegisterNode();
         if (!slot)
         {
-            Log::error(LogModule::App, "failed to acquire chat node slot");
+            LOGE(LogModule::App, "failed to acquire chat node slot");
             Log::shutdown();
             return 1;
         }
-        ChatRuntimeConfig::getInstance().setSelf(*slot);
+        RuntimeContext::getInstance().setNodeInfo(*slot);
 
-        const auto &self = ChatRuntimeConfig::getInstance().self();
+        // ---- 4. 初始化工作线程 ----
+        const auto &self = RuntimeContext::getInstance().getNodeInfo();
         auto &pool = AsioIOServicePool::getInstance();
         RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, self.name, "0");
         PersistWorker::getInstance().start();
         NodeHeartbeat::start();
 
-        const std::string server_address = self.rpc_bind_host + ":" + self.rpc_port;
+        // ---- 5. 注册信号处理（优雅退出） ----
+        boost::asio::io_context io_context;
+        boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
+        signals.async_wait([&io_context, &pool](auto, auto) {
+            io_context.stop();
+            pool.stop();
+        });
+
+        // ---- 6. 启动 gRPC 服务（供其他后端服务调用） ----
+        const std::string server_address = self.rpc_host + ":" + self.rpc_port;
         ChatServiceImpl service;
         grpc::ServerBuilder builder;
         builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
@@ -56,39 +72,34 @@ int main()
             StatusGrpcClient::getInstance().unregisterChatNode(self);
             return 1;
         }
-
-        std::thread grpc_server_thread([&server]() { server->Wait(); });
-
-        boost::asio::io_context io_context;
-        boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
-        signals.async_wait([&io_context, &pool, &server](auto, auto) {
-            io_context.stop();
-            pool.stop();
-            server->Shutdown();
+        std::thread grpc_server_thread([&server]() {
+            server->Wait();
         });
 
+        // ---- 7. 启动 TCP 服务（供客户端连接） ----
         CServer tcp_server(io_context, std::stoi(self.tcp_port));
         HeartBeatHandler::start(tcp_server);
         io_context.run();
         HeartBeatHandler::stop();
 
+        // ---- 8. 清理资源 ----
         NodeHeartbeat::stop();
         PersistWorker::getInstance().stop();
         StatusGrpcClient::getInstance().unregisterChatNode(self);
         RedisMgr::getInstance().hDel(RedisPrefix::LOGIN_COUNT, self.name);
         RedisMgr::getInstance().close();
         grpc_server_thread.join();
-        Log::info(LogModule::App, "ChatServer stopped");
+        LOGI(LogModule::App, "ChatServer stopped");
         Log::shutdown();
     }
     catch (std::exception &e)
     {
-        Log::error(LogModule::App, "ChatServer exception: {}", e.what());
-        if (ChatRuntimeConfig::getInstance().hasSelf())
+        LOGE(LogModule::App, "ChatServer exception: {}", e.what());
+        if (RuntimeContext::getInstance().isInitialized())
         {
             NodeHeartbeat::stop();
             StatusGrpcClient::getInstance().unregisterChatNode(
-                ChatRuntimeConfig::getInstance().self());
+                RuntimeContext::getInstance().getNodeInfo());
         }
         Log::shutdown();
         return 1;

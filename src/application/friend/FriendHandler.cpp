@@ -1,7 +1,7 @@
 #include "FriendHandler.h"
 #include "CSession.h"
 #include "ChatGrpcClient.h"
-#include "ChatRuntimeConfig.h"
+#include "RuntimeContext.h"
 #include "MySqlMgr.h"
 #include "StatusGrpcClient.h"
 #include "UserCacheService.h"
@@ -46,7 +46,7 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
     auto apply_info = std::make_shared<UserInfo>();
     bool b_info = UserCacheService::getByUid(uid, apply_info);
 
-    const auto &self_name = ChatRuntimeConfig::getInstance().self().name;
+    const auto &self_name = RuntimeContext::getInstance().getNodeInfo().name;
     if (peer_loc->node_name == self_name)
     {
         auto to_user_session = UserMgr::getInstance().getSession(touid);
@@ -141,7 +141,7 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     {
         return;
     }
-    const auto &self_name = ChatRuntimeConfig::getInstance().self().name;
+    const auto &self_name = RuntimeContext::getInstance().getNodeInfo().name;
     if (peer_loc->node_name == self_name)
     {
         auto peer_session = UserMgr::getInstance().getSession(applicant_uid);

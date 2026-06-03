@@ -1,5 +1,5 @@
 #include "NodeHeartbeat.h"
-#include "ChatRuntimeConfig.h"
+#include "RuntimeContext.h"
 #include "StatusGrpcClient.h"
 #include <atomic>
 #include <chrono>
@@ -15,10 +15,10 @@ void NodeHeartbeat::runLoop()
 {
     while (g_running.load())
     {
-        if (ChatRuntimeConfig::getInstance().hasSelf())
+        if (RuntimeContext::getInstance().isInitialized())
         {
-            const auto &self = ChatRuntimeConfig::getInstance().self();
-            StatusGrpcClient::getInstance().heartbeatChatNode(self.name, self.instance_id);
+            const auto &self = RuntimeContext::getInstance().getNodeInfo();
+            StatusGrpcClient::getInstance().heartbeatChatNode(self.name, self.instance_uid);
         }
         for (int i = 0; i < 100 && g_running.load(); ++i)
         {

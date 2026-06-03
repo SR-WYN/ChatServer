@@ -3,16 +3,18 @@
 #include "CSession.h"
 #include "Log.h"
 
+// 构造函数：绑定端口、启动监听、开始接受连接
 CServer::CServer(boost::asio::io_context &io_context, short port)
     : _io_context(io_context), _port(port),
       _acceptor(io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _port))
 {
-    Log::info(LogModule::Net, "TCP server listening on port {}", _port);
+    LOGI(LogModule::Net, "TCP server listening on port {}", _port);
     StartAccept();
 }
 
 CServer::~CServer()
 {
+    LOGI(LogModule::Net, "TCP server on port {} destroyed", _port);
 }
 
 boost::asio::io_context &CServer::ioContext()
@@ -20,6 +22,7 @@ boost::asio::io_context &CServer::ioContext()
     return _io_context;
 }
 
+// 获取当前所有会话的快照（线程安全）
 void CServer::snapshotSessions(std::vector<std::shared_ptr<CSession>> &out)
 {
     std::lock_guard<std::mutex> lock(_mutex);
@@ -31,6 +34,7 @@ void CServer::snapshotSessions(std::vector<std::shared_ptr<CSession>> &out)
     }
 }
 
+// 处理接受连接的结果
 void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
                            const boost::system::error_code &error)
 {
@@ -39,14 +43,17 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
         new_session->start();
         std::lock_guard<std::mutex> lock(_mutex);
         _sessions[new_session->getSessionId()] = new_session;
+        LOGI(LogModule::Net, "client connected, session={}, total={}",
+             new_session->getSessionId(), _sessions.size());
     }
     else
     {
-        Log::warn(LogModule::Net, "accept failed: {}", error.message());
+        LOGW(LogModule::Net, "accept failed: {}", error.message());
     }
     StartAccept();
 }
 
+// 启动异步接受连接
 void CServer::StartAccept()
 {
     auto &io_context = AsioIOServicePool::getInstance().getIOService();
@@ -57,8 +64,10 @@ void CServer::StartAccept()
                            });
 }
 
+// 移除指定 uuid 的会话
 void CServer::ClearSession(std::string uuid)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _sessions.erase(uuid);
+    LOGI(LogModule::Net, "session removed, uuid={}, remaining={}", uuid, _sessions.size());
 }

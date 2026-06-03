@@ -1,7 +1,7 @@
 #include "ChatDeliveryService.h"
 #include "CSession.h"
 #include "ChatGrpcClient.h"
-#include "ChatRuntimeConfig.h"
+#include "RuntimeContext.h"
 #include "StatusGrpcClient.h"
 #include "UserMgr.h"
 #include "const.h"
@@ -43,7 +43,7 @@ bool ChatDeliveryService::deliverTextChat(int from_uid, int to_uid, const Json::
         return false;
     }
 
-    const auto &self = ChatRuntimeConfig::getInstance().self();
+    const auto &self = RuntimeContext::getInstance().getNodeInfo();
     if (loc->node_name == self.name)
     {
         return false;

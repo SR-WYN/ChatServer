@@ -69,7 +69,7 @@ LoginRsp StatusGrpcClient::login(int uid, std::string token)
     return reply;
 }
 
-bool StatusGrpcClient::registerChatNode(const SelfNodeProfile &node)
+bool StatusGrpcClient::registerChatNode(const NodeInfo &node)
 {
     ClientContext context;
     RegisterChatNodeReq request;
@@ -79,7 +79,7 @@ bool StatusGrpcClient::registerChatNode(const SelfNodeProfile &node)
     request.set_client_port(node.client_advertise_port);
     request.set_rpc_host(node.rpc_advertise_host);
     request.set_rpc_port(node.rpc_advertise_port);
-    request.set_instance_id(node.instance_id);
+    request.set_instance_id(node.instance_uid);
     auto stub = _pool->getConnection();
     if (!stub)
     {
@@ -90,13 +90,13 @@ bool StatusGrpcClient::registerChatNode(const SelfNodeProfile &node)
     return status.ok() && reply.error() == ErrorCodes::SUCCESS;
 }
 
-bool StatusGrpcClient::unregisterChatNode(const SelfNodeProfile &node)
+bool StatusGrpcClient::unregisterChatNode(const NodeInfo &node)
 {
     ClientContext context;
     UnregisterChatNodeReq request;
     UnregisterChatNodeRsp reply;
     request.set_name(node.name);
-    request.set_instance_id(node.instance_id);
+    request.set_instance_id(node.instance_uid);
     auto stub = _pool->getConnection();
     if (!stub)
     {

@@ -1,4 +1,10 @@
 #include "utils.h"
+#include "Log.h"
+#include <boost/asio.hpp>
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
+#include <unistd.h>
 
 unsigned char utils::toHex(unsigned char x)
 {
@@ -73,4 +79,89 @@ utils::Defer::~Defer()
 {
     if (_func)
         _func();
+}
+
+// ---- 系统/网络工具 ----
+
+bool utils::isPortAvailable(const std::string &host, const std::string &port_str)
+{
+    try
+    {
+        boost::asio::io_context io;
+        boost::asio::ip::tcp::acceptor acceptor(io);
+        boost::asio::ip::tcp::endpoint endpoint(
+            boost::asio::ip::make_address(host),
+            static_cast<unsigned short>(std::stoi(port_str)));
+        acceptor.open(endpoint.protocol());
+        acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+        acceptor.bind(endpoint);
+        acceptor.listen(boost::asio::socket_base::max_listen_connections);
+        acceptor.close();
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        return false;
+    }
+}
+
+std::string utils::envOrDefault(const char *env_key, const std::string &fallback)
+{
+    if (const char *val = std::getenv(env_key))
+    {
+        if (val[0] != '\0')
+        {
+            return val;
+        }
+    }
+    return fallback;
+}
+
+bool utils::envMust(const char *env_key, std::string &value)
+{
+    if (const char *val = std::getenv(env_key))
+    {
+        if (val[0] != '\0')
+        {
+            value = val;
+            return true;
+        }
+    }
+    return false;
+}
+
+void utils::loadEnvFile(const std::string &path)
+{
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        Log::warn(LogModule::Config, "loadEnvFile: cannot open {}", path);
+        return;
+    }
+    std::string line;
+    while (std::getline(file, line))
+    {
+        // 跳过空行和注释
+        if (line.empty() || line[0] == '#')
+            continue;
+        auto pos = line.find('=');
+        if (pos == std::string::npos)
+            continue;
+        std::string key = line.substr(0, pos);
+        std::string val = line.substr(pos + 1);
+        if (!key.empty() && !val.empty())
+        {
+            setenv(key.c_str(), val.c_str(), 0);  // 0 = 不覆盖已有变量
+        }
+    }
+    file.close();
+}
+
+std::string utils::makeInstanceUid()
+{
+    char hostname[256] = {};
+    gethostname(hostname, sizeof(hostname) - 1);
+    std::ostringstream oss;
+    oss << hostname << '-' << getpid();
+    return oss.str();
 }

@@ -1,4 +1,4 @@
-#include "ChatRuntimeConfig.h"
+#include "RuntimeContext.h"
 #include "Singleton.h"
 #include "message.grpc.pb.h"
 #include "message.pb.h"
@@ -31,8 +31,8 @@ public:
     ~StatusGrpcClient() override;
     GetChatServerRsp getChatServer(int uid);
     LoginRsp login(int uid, std::string token);
-    bool registerChatNode(const SelfNodeProfile &node);
-    bool unregisterChatNode(const SelfNodeProfile &node);
+    bool registerChatNode(const NodeInfo &node);
+    bool unregisterChatNode(const NodeInfo &node);
     bool heartbeatChatNode(const std::string &name, const std::string &instance_id);
     std::optional<UserChatLocation> getUserChatNode(int uid);
     std::optional<UserChatLocation> getChatNode(const std::string &name);

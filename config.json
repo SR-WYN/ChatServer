@@ -4,21 +4,7 @@
     "Level": "info"
   },
   "ChatNodePool": {
-    "Slots": "slot0,slot1,slot2",
-    "ClientAdvertiseHost": "127.0.0.1",
-    "RpcAdvertiseHost": "127.0.0.1"
-  },
-  "slot0": {
-    "TcpPort": "8090",
-    "RpcPort": "50055"
-  },
-  "slot1": {
-    "TcpPort": "8091",
-    "RpcPort": "50056"
-  },
-  "slot2": {
-    "TcpPort": "8092",
-    "RpcPort": "50057"
+    "Slots": "slot0,slot1,slot2"
   },
   "GateServer": {
     "Port": "7979",
