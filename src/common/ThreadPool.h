@@ -1,60 +1,24 @@
-#pragma once
-#include <vector>
-#include <queue>
-#include <thread>
-#include <mutex>
+#include <atomic>
 #include <condition_variable>
 #include <functional>
-#include <atomic>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <vector>
 
-template <typename Derived>
-class ThreadPoolBase {
-protected:
-    std::vector<std::thread> workers;
-    std::queue<std::function<void()>> tasks;
-    
-    std::mutex queue_mutex;
-    std::condition_variable condition;
-    std::atomic<bool> stop{false};
-
+class ThreadPool
+{
 public:
-    ThreadPoolBase(size_t threads) {
-        for(size_t i = 0; i < threads; ++i)
-            workers.emplace_back([this] {
-                while(true) {
-                    std::function<void()> task;
-                    {
-                        std::unique_lock<std::mutex> lock(this->queue_mutex);
-                        this->condition.wait(lock, [this] { 
-                            return this->stop || !this->tasks.empty(); 
-                        });
-                        if(this->stop && this->tasks.empty()) return;
-                        task = std::move(this->tasks.front());
-                        this->tasks.pop();
-                    }
-                    task(); // 执行任务
-                }
-            });
-    }
+    explicit ThreadPool(std::size_t core_num);
 
-    ~ThreadPoolBase() {
-        stop = true;
-        condition.notify_all();
-        for(std::thread &worker : workers)
-            worker.join();
-    }
+    void enqueue(std::function<void()> task);
 
-    // 通过 CRTP 调用派生类的处理逻辑
-    template<typename F>
-    void enqueue(F&& f) {
-        {
-            std::unique_lock<std::mutex> lock(queue_mutex);
-            tasks.emplace(std::forward<F>(f));
-        }
-        condition.notify_one();
-        // 允许派生类在任务入队后执行额外操作
-        static_cast<Derived*>(this)->onTaskEnqueued();
-    }
+    ~ThreadPool();
 
-    void onTaskEnqueued() {} // 默认实现，派生类可选重写
+private:
+    std::vector<std::thread> _workers;
+    std::queue<std::function<void()>> _tasks;
+    std::mutex _mutex;
+    std::condition_variable _cond;
+    std::atomic<bool> _stop;
 };

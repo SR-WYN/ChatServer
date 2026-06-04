@@ -24,7 +24,7 @@ LogicSystem::~LogicSystem()
 
 void LogicSystem::postMsgToQue(std::shared_ptr<LogicNode> msg)
 {
-    ThreadPoolMgr::getInstance().getLogicPool().enqueue([this, msg]() {
+    ThreadPoolMgr::getInstance().enqueueLogic([this, msg]() {
         auto call_back_iter = _fun_callbacks.find(msg->getRecvNode()->getMsgId());
         if (call_back_iter == _fun_callbacks.end())
         {
