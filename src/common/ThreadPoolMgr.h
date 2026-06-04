@@ -10,11 +10,6 @@ public:
     ~ThreadPoolMgr();
 
     void enqueueLogic(std::function<void()> task);
-    // template <typename F, typename... Args>
-    // auto enqueueIO(F &&f, Args &&...args)
-    // {
-    //     return ioPool->enqueue(std::forward<F>(f), std::forward<Args>(args)...);
-    // }
 
 private:
     ThreadPoolMgr();

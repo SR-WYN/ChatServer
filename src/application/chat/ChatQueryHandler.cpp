@@ -1,14 +1,18 @@
-#include "ChatHistoryHandler.h"
+#include "ChatQueryHandler.h"
 #include "ChatMessage.h"
-#include "ChatMessageService.h"
+#include "MySqlMgr.h"
 #include "const.h"
 #include "utils.h"
 #include <json/reader.h>
 #include <json/value.h>
 #include <json/writer.h>
+#include <map>
+#include <vector>
 
 namespace
 {
+constexpr int kOfflineBatchLimit = 100;
+
 std::string compactJson(const Json::Value &value)
 {
     Json::StreamWriterBuilder builder;
@@ -17,8 +21,10 @@ std::string compactJson(const Json::Value &value)
 }
 } // namespace
 
-void ChatHistoryHandler::handleHistory(std::shared_ptr<CSession> session, const short &msg_id,
-                                       const std::string &msg_data)
+// ---- 历史消息查询 ----
+
+void ChatQueryHandler::handleHistory(std::shared_ptr<CSession> session, const short &msg_id,
+                                     const std::string &msg_data)
 {
     (void)msg_id;
     Json::Reader reader;
@@ -66,8 +72,9 @@ void ChatHistoryHandler::handleHistory(std::shared_ptr<CSession> session, const 
         limit = root["limit"].asInt();
     }
 
+    auto &repo = MySqlMgr::getInstance().chatMessages();
     std::vector<ChatMessage> messages;
-    if (!ChatMessageService::queryHistory(self_uid, peer_uid, before_id, limit, messages))
+    if (!repo.queryHistory(self_uid, peer_uid, before_id, limit, messages))
     {
         result["error"] = ErrorCodes::RPCFAILED;
         return;
@@ -85,4 +92,40 @@ void ChatHistoryHandler::handleHistory(std::shared_ptr<CSession> session, const 
         text_array.append(element);
     }
     result["text_array"] = text_array;
+}
+
+// ---- 离线消息同步 ----
+
+void ChatQueryHandler::syncAfterLogin(std::shared_ptr<CSession> session, int uid)
+{
+    auto &repo = MySqlMgr::getInstance().chatMessages();
+    std::vector<ChatMessage> messages;
+    std::vector<uint64_t> inbox_ids;
+    if (!repo.fetchOfflineBatch(uid, kOfflineBatchLimit, messages, inbox_ids))
+    {
+        return;
+    }
+    if (!inbox_ids.empty())
+    {
+        repo.removeOfflineByIds(inbox_ids);
+    }
+
+    std::map<int, Json::Value> by_sender;
+    for (const auto &msg : messages)
+    {
+        Json::Value element;
+        element["msgid"] = msg.client_msg_id;
+        element["content"] = msg.content;
+        by_sender[msg.from_uid].append(element);
+    }
+
+    for (const auto &entry : by_sender)
+    {
+        Json::Value notify;
+        notify["error"] = ErrorCodes::SUCCESS;
+        notify["fromuid"] = entry.first;
+        notify["touid"] = uid;
+        notify["text_array"] = entry.second;
+        session->send(notify.toStyledString(), MSG_NOTIFY_TEXT_CHAT_MSG_REQ);
+    }
 }

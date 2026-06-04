@@ -18,7 +18,7 @@ FriendDao &MySqlMgr::friends()
     return _friend_dao;
 }
 
-IChatMessageRepository &MySqlMgr::chatMessages()
+ChatMessageDao &MySqlMgr::chatMessages()
 {
     return _chat_message_dao;
 }

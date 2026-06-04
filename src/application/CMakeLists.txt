@@ -11,12 +11,9 @@ add_library(cs_application STATIC
     user/HeartBeatHandler.cpp
     friend/FriendHandler.cpp
     friend/FriendDao.cpp
-    chat/TextChatHandler.cpp
+    chat/ChatMessageHandler.cpp
     chat/ChatMessageDao.cpp
-    chat/ChatMessageService.cpp
-    chat/ChatDeliveryService.cpp
-    chat/OfflineSyncService.cpp
-    chat/ChatHistoryHandler.cpp
+    chat/ChatQueryHandler.cpp
     chat/ChatServiceImpl.cpp
     chat/PersistWorker.cpp
 )

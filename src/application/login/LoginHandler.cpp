@@ -1,10 +1,10 @@
 #include "LoginHandler.h"
 #include "CSession.h"
-#include "RuntimeContext.h"
+#include "ChatQueryHandler.h"
 #include "ConfigMgr.h"
 #include "MySqlMgr.h"
-#include "OfflineSyncService.h"
 #include "RedisMgr.h"
+#include "RuntimeContext.h"
 #include "StatusGrpcClient.h"
 #include "UserCacheService.h"
 #include "UserMgr.h"
@@ -134,7 +134,7 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
 
     login_rsp_sent = true;
     session->send(return_value.toStyledString(), MSG_CHAT_LOGIN_RSP);
-    OfflineSyncService::syncAfterLogin(session, uid);
+    ChatQueryHandler::syncAfterLogin(session, uid);
 }
 
 bool LoginHandler::getFriendApplyInfo(int touid, std::vector<std::shared_ptr<ApplyInfo>> &list)
