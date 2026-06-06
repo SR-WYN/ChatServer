@@ -22,10 +22,7 @@ int main()
 {
     try
     {
-        // ---- 1. 加载环境变量 ----
-        utils::loadEnvFile(".env");
-
-        // ---- 2. 初始化基础设施 ----
+        // ---- 1. 初始化基础设施 ----
         ConfigMgr::getInstance();
         if (!Log::init("ChatServer", ConfigMgr::getInstance().getLogConfig()))
         {
@@ -33,7 +30,7 @@ int main()
         }
         LOGI(LogModule::App, "ChatServer starting");
 
-        // ---- 3. 向 StatusServer 注册当前节点 ----
+        // ---- 2. 向 StatusServer 注册当前节点 ----
         // 遍历配置槽位，找到端口可用且注册成功的 slot
         auto slot = RuntimeContext::tryRegisterNode();
         if (!slot)
@@ -44,14 +41,14 @@ int main()
         }
         RuntimeContext::getInstance().setNodeInfo(*slot);
 
-        // ---- 4. 初始化工作线程 ----
+        // ---- 3. 初始化工作线程 ----
         const auto &self = RuntimeContext::getInstance().getNodeInfo();
         auto &pool = AsioIOServicePool::getInstance();
         RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, self.name, "0");
         PersistWorker::getInstance().start();
         NodeHeartbeat::start();
 
-        // ---- 5. 注册信号处理（优雅退出） ----
+        // ---- 4. 注册信号处理（优雅退出） ----
         boost::asio::io_context io_context;
         boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
         signals.async_wait([&io_context, &pool](auto, auto) {
@@ -59,7 +56,7 @@ int main()
             pool.stop();
         });
 
-        // ---- 6. 启动 gRPC 服务（供其他后端服务调用） ----
+        // ---- 5. 启动 gRPC 服务（供其他后端服务调用） ----
         const std::string server_address = self.rpc_host + ":" + self.rpc_port;
         ChatServiceImpl service;
         grpc::ServerBuilder builder;
@@ -76,13 +73,13 @@ int main()
             server->Wait();
         });
 
-        // ---- 7. 启动 TCP 服务（供客户端连接） ----
+        // ---- 6. 启动 TCP 服务（供客户端连接） ----
         CServer tcp_server(io_context, std::stoi(self.tcp_port));
         HeartBeatHandler::start(tcp_server);
         io_context.run();
         HeartBeatHandler::stop();
 
-        // ---- 8. 清理资源 ----
+        // ---- 7. 清理资源 ----
         NodeHeartbeat::stop();
         PersistWorker::getInstance().stop();
         StatusGrpcClient::getInstance().unregisterChatNode(self);

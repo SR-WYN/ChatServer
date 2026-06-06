@@ -45,24 +45,9 @@ std::optional<NodeInfo> RuntimeContext::forEachSlot(
         return std::nullopt;
     }
 
-    // 地址必须从环境变量读取
-    std::string client_host;
-    if (!utils::envMust("CHAT_CLIENT_ADVERTISE_HOST", client_host))
-    {
-        Log::error(LogModule::Config, "forEachSlot: CHAT_CLIENT_ADVERTISE_HOST not set");
-        return std::nullopt;
-    }
-    std::string rpc_host;
-    if (!utils::envMust("CHAT_RPC_ADVERTISE_HOST", rpc_host))
-    {
-        Log::error(LogModule::Config, "forEachSlot: CHAT_RPC_ADVERTISE_HOST not set");
-        return std::nullopt;
-    }
-
     const std::string instance_uid = utils::makeInstanceUid();
 
-    Log::info(LogModule::Config, "forEachSlot: slots=[{}] client_host={} rpc_host={} uid={}",
-              slots_csv, client_host, rpc_host, instance_uid);
+    Log::info(LogModule::Config, "forEachSlot: slots=[{}] uid={}", slots_csv, instance_uid);
 
     std::stringstream ss(slots_csv);
     std::string slot_key;
@@ -73,15 +58,25 @@ std::optional<NodeInfo> RuntimeContext::forEachSlot(
             continue;
         }
 
-        // 端口必须从环境变量读取
-        std::string tcp_env_key = "CHAT_SLOT" + slot_key + "_TCP_PORT";
-        std::string rpc_env_key = "CHAT_SLOT" + slot_key + "_RPC_PORT";
-        std::string tcp_port, rpc_port;
-        if (!utils::envMust(tcp_env_key.c_str(), tcp_port) ||
-            !utils::envMust(rpc_env_key.c_str(), rpc_port))
+        // 从 config.json 的 ChatNode_{slot_key} 节中读取节点配置
+        std::string tcp_port, rpc_port, client_host, rpc_host;
+        bool found = false;
+
+        std::string node_section = "ChatNode_" + slot_key;
+        auto section = cfg[node_section];
+        tcp_port  = section["TcpPort"];
+        rpc_port  = section["RpcPort"];
+        client_host = section["ClientAdvertiseHost"];
+        rpc_host    = section["RpcAdvertiseHost"];
+
+        if (!tcp_port.empty() && !rpc_port.empty() && !client_host.empty() && !rpc_host.empty())
         {
-            Log::warn(LogModule::Config, "forEachSlot: slot={} missing env {}/{}",
-                      slot_key, tcp_env_key, rpc_env_key);
+            found = true;
+        }
+
+        if (!found)
+        {
+            Log::warn(LogModule::Config, "forEachSlot: slot={} config not found in ChatNodePool.Nodes", slot_key);
             continue;
         }
 
@@ -108,8 +103,8 @@ std::optional<NodeInfo> RuntimeContext::forEachSlot(
         info.rpc_advertise_host    = rpc_host;
         info.rpc_advertise_port    = rpc_port;
 
-        Log::info(LogModule::Config, "forEachSlot: slot={} ports=[tcp={},rpc={}] trying",
-                  slot_key, tcp_port, rpc_port);
+        Log::info(LogModule::Config, "forEachSlot: slot={} ports=[tcp={},rpc={}] client_host={} rpc_host={} trying",
+                  slot_key, tcp_port, rpc_port, client_host, rpc_host);
 
         if (accept(info))
         {
