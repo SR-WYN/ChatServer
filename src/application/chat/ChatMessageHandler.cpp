@@ -95,18 +95,18 @@ bool persistOneMessage(int from_uid, int to_uid, const std::string &msgid,
     }
 
     ChatMessage msg;
+    msg.id = g_snowflake ? g_snowflake->nextId() : 0;
     msg.client_msg_id = msgid;
     msg.from_uid = from_uid;
     msg.to_uid = to_uid;
     msg.content = content;
-    uint64_t db_id = 0;
-    if (!repo.saveMessage(msg, db_id))
+    if (!repo.saveMessage(msg))
     {
         return false;
     }
     if (!delivered_online)
     {
-        if (!repo.enqueueOffline(db_id, to_uid))
+        if (!repo.enqueueOffline(msg.id, to_uid))
         {
             return false;
         }
@@ -146,6 +146,7 @@ void ChatMessageHandler::persistOutgoingBatch(int from_uid, int to_uid,
         }
 
         PersistTask task;
+        task.message.id = g_snowflake ? g_snowflake->nextId() : 0;
         task.message.client_msg_id = msgid;
         task.message.from_uid = from_uid;
         task.message.to_uid = to_uid;

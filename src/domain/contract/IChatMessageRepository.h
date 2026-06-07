@@ -11,7 +11,8 @@ class IChatMessageRepository
 public:
     virtual ~IChatMessageRepository() = default;
 
-    virtual bool saveMessage(const ChatMessage &msg, uint64_t &out_db_id) = 0;
+    // 保存消息（msg.id 已由调用方赋值为雪花 ID）
+    virtual bool saveMessage(const ChatMessage &msg) = 0;
     virtual bool existsByClientMsgId(int from_uid, const std::string &client_msg_id) = 0;
     virtual bool enqueueOffline(uint64_t message_id, int owner_uid) = 0;
     virtual bool fetchOfflineBatch(int owner_uid, int limit, std::vector<ChatMessage> &out,

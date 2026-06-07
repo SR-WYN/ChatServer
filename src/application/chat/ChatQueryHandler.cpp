@@ -6,7 +6,9 @@
 #include <json/reader.h>
 #include <json/value.h>
 #include <json/writer.h>
+#include <algorithm>
 #include <map>
+#include <set>
 #include <vector>
 
 namespace
@@ -19,9 +21,21 @@ std::string compactJson(const Json::Value &value)
     builder["indentation"] = "";
     return Json::writeString(builder, value);
 }
+
+// 将 ChatMessage 转为 JSON 对象
+Json::Value chatMsgToJson(const ChatMessage &msg)
+{
+    Json::Value element;
+    element["msgid"] = msg.client_msg_id;
+    element["content"] = msg.content;
+    element["fromuid"] = msg.from_uid;
+    element["touid"] = msg.to_uid;
+    element["snowflake_id"] = static_cast<Json::UInt64>(msg.id);
+    return element;
+}
 } // namespace
 
-// ---- 历史消息查询 ----
+// ---- 历史消息查询（合并离线消息） ----
 
 void ChatQueryHandler::handleHistory(std::shared_ptr<CSession> session, const short &msg_id,
                                      const std::string &msg_data)
@@ -80,52 +94,55 @@ void ChatQueryHandler::handleHistory(std::shared_ptr<CSession> session, const sh
         return;
     }
 
+    // 首次查询（before_id == 0）时合并离线消息
+    if (before_id == 0)
+    {
+        std::vector<ChatMessage> offline_msgs;
+        std::vector<uint64_t> inbox_ids;
+        if (repo.fetchOfflineBatch(self_uid, kOfflineBatchLimit, offline_msgs, inbox_ids))
+        {
+            if (!inbox_ids.empty())
+            {
+                repo.removeOfflineByIds(inbox_ids);
+            }
+
+            // 按雪花 ID 去重合并
+            std::set<uint64_t> seen_ids;
+            for (const auto &msg : messages)
+            {
+                seen_ids.insert(msg.id);
+            }
+            for (const auto &msg : offline_msgs)
+            {
+                if (seen_ids.find(msg.id) == seen_ids.end())
+                {
+                    messages.push_back(msg);
+                    seen_ids.insert(msg.id);
+                }
+            }
+
+            // 按雪花 ID 升序排序
+            std::sort(messages.begin(), messages.end(),
+                      [](const ChatMessage &a, const ChatMessage &b) {
+                          return a.id < b.id;
+                      });
+        }
+    }
+
     result["peer_uid"] = peer_uid;
     Json::Value text_array(Json::arrayValue);
     for (const auto &msg : messages)
     {
-        Json::Value element;
-        element["msgid"] = msg.client_msg_id;
-        element["content"] = msg.content;
-        element["fromuid"] = msg.from_uid;
-        element["touid"] = msg.to_uid;
-        text_array.append(element);
+        text_array.append(chatMsgToJson(msg));
     }
     result["text_array"] = text_array;
 }
 
-// ---- 离线消息同步 ----
+// ---- 离线消息同步（已废弃，由 handleHistory 合并处理） ----
 
 void ChatQueryHandler::syncAfterLogin(std::shared_ptr<CSession> session, int uid)
 {
-    auto &repo = MySqlMgr::getInstance().chatMessages();
-    std::vector<ChatMessage> messages;
-    std::vector<uint64_t> inbox_ids;
-    if (!repo.fetchOfflineBatch(uid, kOfflineBatchLimit, messages, inbox_ids))
-    {
-        return;
-    }
-    if (!inbox_ids.empty())
-    {
-        repo.removeOfflineByIds(inbox_ids);
-    }
-
-    std::map<int, Json::Value> by_sender;
-    for (const auto &msg : messages)
-    {
-        Json::Value element;
-        element["msgid"] = msg.client_msg_id;
-        element["content"] = msg.content;
-        by_sender[msg.from_uid].append(element);
-    }
-
-    for (const auto &entry : by_sender)
-    {
-        Json::Value notify;
-        notify["error"] = ErrorCodes::SUCCESS;
-        notify["fromuid"] = entry.first;
-        notify["touid"] = uid;
-        notify["text_array"] = entry.second;
-        session->send(notify.toStyledString(), MSG_NOTIFY_TEXT_CHAT_MSG_REQ);
-    }
+    (void)session;
+    (void)uid;
+    // 不再单独推送离线消息，由客户端发起 CHAT_HISTORY_REQ 时合并返回
 }

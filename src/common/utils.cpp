@@ -1,10 +1,17 @@
 #include "utils.h"
 #include "Log.h"
 #include <boost/asio.hpp>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <thread>
 #include <unistd.h>
+
+// ---- 全局雪花 ID 生成器实例 ----
+utils::SnowflakeId *g_snowflake = nullptr;
+
+// ---- 编解码 ----
 
 unsigned char utils::toHex(unsigned char x)
 {
@@ -13,9 +20,9 @@ unsigned char utils::toHex(unsigned char x)
 
 unsigned char utils::fromHex(unsigned char x)
 {
-    if (x >= 'A' && x <= 'Z')
+    if (x >= 'A' && x <= 'F')
         return x - 'A' + 10;
-    else if (x >= 'a' && x <= 'z')
+    else if (x >= 'a' && x <= 'f')
         return x - 'a' + 10;
     else if (x >= '0' && x <= '9')
         return x - '0';
@@ -23,7 +30,7 @@ unsigned char utils::fromHex(unsigned char x)
         return 0;
 }
 
-std::string utils::urlEncode(const std::string& str)
+std::string utils::urlEncode(const std::string &str)
 {
     std::string strTemp = "";
     for (unsigned char c : str)
@@ -46,7 +53,7 @@ std::string utils::urlEncode(const std::string& str)
     return strTemp;
 }
 
-std::string utils::urlDecode(const std::string& str)
+std::string utils::urlDecode(const std::string &str)
 {
     std::string strTemp = "";
     size_t length = str.length();
@@ -70,8 +77,9 @@ std::string utils::urlDecode(const std::string& str)
     return strTemp;
 }
 
-utils::Defer::Defer(std::function<void()> func)
-    : _func(func)
+// ---- RAII ----
+
+utils::Defer::Defer(std::function<void()> func) : _func(func)
 {
 }
 
@@ -89,9 +97,8 @@ bool utils::isPortAvailable(const std::string &host, const std::string &port_str
     {
         boost::asio::io_context io;
         boost::asio::ip::tcp::acceptor acceptor(io);
-        boost::asio::ip::tcp::endpoint endpoint(
-            boost::asio::ip::make_address(host),
-            static_cast<unsigned short>(std::stoi(port_str)));
+        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(host),
+                                                static_cast<unsigned short>(std::stoi(port_str)));
         acceptor.open(endpoint.protocol());
         acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
         acceptor.bind(endpoint);
@@ -151,7 +158,7 @@ void utils::loadEnvFile(const std::string &path)
         std::string val = line.substr(pos + 1);
         if (!key.empty() && !val.empty())
         {
-            setenv(key.c_str(), val.c_str(), 0);  // 0 = 不覆盖已有变量
+            setenv(key.c_str(), val.c_str(), 0); // 0 = 不覆盖已有变量
         }
     }
     file.close();
@@ -164,4 +171,62 @@ std::string utils::makeInstanceUid()
     std::ostringstream oss;
     oss << hostname << '-' << getpid();
     return oss.str();
+}
+
+// ---- 雪花 ID 生成器 ----
+
+utils::SnowflakeId::SnowflakeId(uint64_t node_id) : _node_id(node_id & kMaxNodeId)
+{
+}
+
+uint64_t utils::SnowflakeId::nowMs() const
+{
+    auto now = std::chrono::system_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    return static_cast<uint64_t>(ms) - kEpoch;
+}
+
+uint64_t utils::SnowflakeId::waitNextMs(uint64_t last_ms) const
+{
+    uint64_t cur = nowMs();
+    while (cur <= last_ms)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        cur = nowMs();
+    }
+    return cur;
+}
+
+uint64_t utils::SnowflakeId::nextId()
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    uint64_t now = nowMs();
+
+    // 时钟回拨：等待到下一毫秒
+    if (now < _last_ms)
+    {
+        now = waitNextMs(_last_ms);
+    }
+
+    // 同一毫秒内，序列号递增
+    if (now == _last_ms)
+    {
+        _sequence = (_sequence + 1) & kMaxSequence;
+        // 序列号耗尽，等待下一毫秒
+        if (_sequence == 0)
+        {
+            now = waitNextMs(_last_ms);
+        }
+    }
+    else
+    {
+        // 新的一毫秒，序列号重置
+        _sequence = 0;
+    }
+
+    _last_ms = now;
+
+    // 组装 64 位 ID
+    return (now << kTimestampShift) | (_node_id << kNodeIdShift) | _sequence;
 }

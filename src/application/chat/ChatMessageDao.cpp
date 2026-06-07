@@ -9,22 +9,6 @@
 
 namespace
 {
-bool readMsgId(sql::Connection &conn, int from_uid, const std::string &client_msg_id,
-               uint64_t &out_db_id)
-{
-    auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(
-        "SELECT id FROM chat_message WHERE from_uid = ? AND client_msg_id = ? LIMIT 1"));
-    stmt->setInt(1, from_uid);
-    stmt->setString(2, client_msg_id);
-    auto rs = std::unique_ptr<sql::ResultSet>(stmt->executeQuery());
-    if (!rs->next())
-    {
-        return false;
-    }
-    out_db_id = static_cast<uint64_t>(rs->getUInt64("id"));
-    return true;
-}
-
 ChatMessage readChatMsg(sql::ResultSet &rs)
 {
     ChatMessage msg;
@@ -37,28 +21,30 @@ ChatMessage readChatMsg(sql::ResultSet &rs)
 }
 } // namespace
 
-bool ChatMessageDao::saveMessage(const ChatMessage &msg, uint64_t &out_db_id)
+bool ChatMessageDao::saveMessage(const ChatMessage &msg)
 {
     return DbSession::withConn([&](sql::Connection &conn) {
         try
         {
             auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(
-                "INSERT INTO chat_message (client_msg_id, from_uid, to_uid, content) "
-                "VALUES (?,?,?,?)"));
-            stmt->setString(1, msg.client_msg_id);
-            stmt->setInt(2, msg.from_uid);
-            stmt->setInt(3, msg.to_uid);
-            stmt->setString(4, msg.content);
+                "INSERT INTO chat_message (id, client_msg_id, from_uid, to_uid, content) "
+                "VALUES (?,?,?,?,?)"));
+            stmt->setUInt64(1, msg.id);
+            stmt->setString(2, msg.client_msg_id);
+            stmt->setInt(3, msg.from_uid);
+            stmt->setInt(4, msg.to_uid);
+            stmt->setString(5, msg.content);
             stmt->executeUpdate();
-            return readMsgId(conn, msg.from_uid, msg.client_msg_id, out_db_id);
+            return true;
         }
         catch (sql::SQLException &e)
         {
-            if (e.getErrorCode() != 1062)
+            if (e.getErrorCode() == 1062)
             {
-                throw;
+                // 唯一键冲突（from_uid + client_msg_id），消息已存在，视为成功
+                return true;
             }
-            return readMsgId(conn, msg.from_uid, msg.client_msg_id, out_db_id);
+            throw;
         }
     });
 }

@@ -41,6 +41,21 @@ int main()
         }
         RuntimeContext::getInstance().setNodeInfo(*slot);
 
+        // ---- 2.5 初始化全局雪花 ID 生成器 ----
+        // 从 slot_key 解析节点 ID（slot0 → 0, slot1 → 1, ...）
+        {
+            uint64_t node_id = 0;
+            const std::string &slot_key = slot->slot_key;
+            // 去掉 "slot" 前缀，取数字部分
+            if (slot_key.size() > 4)
+            {
+                node_id = static_cast<uint64_t>(std::stoul(slot_key.substr(4)));
+            }
+            g_snowflake = new utils::SnowflakeId(node_id);
+            LOGI(LogModule::App, "SnowflakeId initialized | node_id={} slot_key={}",
+                 node_id, slot_key);
+        }
+
         // ---- 3. 初始化工作线程 ----
         const auto &self = RuntimeContext::getInstance().getNodeInfo();
         auto &pool = AsioIOServicePool::getInstance();
@@ -86,6 +101,8 @@ int main()
         RedisMgr::getInstance().hDel(RedisPrefix::LOGIN_COUNT, self.name);
         RedisMgr::getInstance().close();
         grpc_server_thread.join();
+        delete g_snowflake;
+        g_snowflake = nullptr;
         LOGI(LogModule::App, "ChatServer stopped");
         Log::shutdown();
     }
@@ -98,6 +115,8 @@ int main()
             StatusGrpcClient::getInstance().unregisterChatNode(
                 RuntimeContext::getInstance().getNodeInfo());
         }
+        delete g_snowflake;
+        g_snowflake = nullptr;
         Log::shutdown();
         return 1;
     }

@@ -89,27 +89,26 @@ void PersistWorker::run()
             continue;
         }
 
-        // ---- 2. 写入数据库 ----
-        uint64_t db_id = 0;
-        if (!repo.saveMessage(task.message, db_id))
+        // ---- 2. 写入数据库（雪花 ID 已在调用方生成） ----
+        if (!repo.saveMessage(task.message))
         {
             LOGE(LogModule::Chat,
-                 "failed to save message | from_uid={} to_uid={} client_msg_id={}",
-                 task.message.from_uid, task.message.to_uid, task.message.client_msg_id);
+                 "failed to save message | snowflake_id={} from_uid={} to_uid={} client_msg_id={}",
+                 task.message.id, task.message.from_uid, task.message.to_uid, task.message.client_msg_id);
             continue;
         }
 
         LOGI(LogModule::Chat,
-             "message persisted | db_id={} from_uid={} to_uid={} client_msg_id={}",
-             db_id, task.message.from_uid, task.message.to_uid, task.message.client_msg_id);
+             "message persisted | snowflake_id={} from_uid={} to_uid={} client_msg_id={}",
+             task.message.id, task.message.from_uid, task.message.to_uid, task.message.client_msg_id);
 
         // ---- 3. 未在线投递，存入离线队列 ----
         if (!task.delivered_online)
         {
-            repo.enqueueOffline(db_id, task.message.to_uid);
+            repo.enqueueOffline(task.message.id, task.message.to_uid);
             LOGI(LogModule::Chat,
-                 "offline message enqueued | db_id={} to_uid={}",
-                 db_id, task.message.to_uid);
+                 "offline message enqueued | snowflake_id={} to_uid={}",
+                 task.message.id, task.message.to_uid);
         }
     }
 

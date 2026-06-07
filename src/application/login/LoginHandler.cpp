@@ -1,6 +1,5 @@
 #include "LoginHandler.h"
 #include "CSession.h"
-#include "ChatQueryHandler.h"
 #include "ConfigMgr.h"
 #include "MySqlMgr.h"
 #include "RedisMgr.h"
@@ -134,7 +133,7 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
 
     login_rsp_sent = true;
     session->send(return_value.toStyledString(), MSG_CHAT_LOGIN_RSP);
-    ChatQueryHandler::syncAfterLogin(session, uid);
+    // 移除 syncAfterLogin 调用：离线消息由客户端发起 CHAT_HISTORY_REQ 时合并返回
 }
 
 bool LoginHandler::getFriendApplyInfo(int touid, std::vector<std::shared_ptr<ApplyInfo>> &list)

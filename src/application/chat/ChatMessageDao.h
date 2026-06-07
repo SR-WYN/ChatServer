@@ -10,7 +10,7 @@
 class ChatMessageDao : public IChatMessageRepository
 {
 public:
-    bool saveMessage(const ChatMessage &msg, uint64_t &out_db_id) override;
+    bool saveMessage(const ChatMessage &msg) override;
     bool existsByClientMsgId(int from_uid, const std::string &client_msg_id) override;
     bool enqueueOffline(uint64_t message_id, int owner_uid) override;
     bool fetchOfflineBatch(int owner_uid, int limit, std::vector<ChatMessage> &out,
