@@ -6,8 +6,6 @@
 
 using message::BindUserToNodeReq;
 using message::BindUserToNodeRsp;
-using message::GetChatNodeReq;
-using message::GetChatNodeRsp;
 using message::GetUserChatNodeReq;
 using message::GetUserChatNodeRsp;
 using message::HeartbeatChatNodeReq;
@@ -37,29 +35,6 @@ GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
     request.set_uid(uid);
     auto stub = _pool->getConnection();
     Status status = stub->GetChatServer(&context, request, &reply);
-    utils::Defer defer([&stub, this]() { _pool->returnConnection(std::move(stub)); });
-    if (status.ok())
-    {
-        return reply;
-    }
-    reply.set_error(ErrorCodes::RPCFAILED);
-    return reply;
-}
-
-LoginRsp StatusGrpcClient::login(int uid, std::string token)
-{
-    ClientContext context;
-    LoginRsp reply;
-    LoginReq request;
-    request.set_uid(uid);
-    request.set_token(token);
-    auto stub = _pool->getConnection();
-    if (!stub)
-    {
-        reply.set_error(ErrorCodes::RPCFAILED);
-        return reply;
-    }
-    Status status = stub->Login(&context, request, &reply);
     utils::Defer defer([&stub, this]() { _pool->returnConnection(std::move(stub)); });
     if (status.ok())
     {
@@ -143,30 +118,6 @@ std::optional<UserChatLocation> StatusGrpcClient::getUserChatNode(int uid)
     }
     UserChatLocation loc;
     loc.node_name = reply.node_name();
-    loc.rpc_host = reply.rpc_host();
-    loc.rpc_port = reply.rpc_port();
-    return loc;
-}
-
-std::optional<UserChatLocation> StatusGrpcClient::getChatNode(const std::string &name)
-{
-    ClientContext context;
-    GetChatNodeReq request;
-    GetChatNodeRsp reply;
-    request.set_name(name);
-    auto stub = _pool->getConnection();
-    if (!stub)
-    {
-        return std::nullopt;
-    }
-    Status status = stub->GetChatNode(&context, request, &reply);
-    utils::Defer defer([&stub, this]() { _pool->returnConnection(std::move(stub)); });
-    if (!status.ok() || reply.error() != ErrorCodes::SUCCESS)
-    {
-        return std::nullopt;
-    }
-    UserChatLocation loc;
-    loc.node_name = reply.name();
     loc.rpc_host = reply.rpc_host();
     loc.rpc_port = reply.rpc_port();
     return loc;
