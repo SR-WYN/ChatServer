@@ -1,3 +1,4 @@
+#include "IStatusServiceClient.h"
 #include "RuntimeContext.h"
 #include "Singleton.h"
 #include "message.grpc.pb.h"
@@ -16,14 +17,7 @@ using grpc::Status;
 
 class StatusConPool;
 
-struct UserChatLocation
-{
-    std::string node_name;
-    std::string rpc_host;
-    std::string rpc_port;
-};
-
-class StatusGrpcClient : public Singleton<StatusGrpcClient>
+class StatusGrpcClient : public Singleton<StatusGrpcClient>, public IStatusServiceClient
 {
     friend class Singleton<StatusGrpcClient>;
 
@@ -31,12 +25,12 @@ public:
     ~StatusGrpcClient() override;
     GetChatServerRsp getChatServer(int uid);
     LoginRsp login(int uid, std::string token);
-    bool registerChatNode(const NodeInfo &node);
-    bool unregisterChatNode(const NodeInfo &node);
-    bool heartbeatChatNode(const std::string &name, const std::string &instance_id);
-    std::optional<UserChatLocation> getUserChatNode(int uid);
+    bool registerChatNode(const NodeInfo &node) override;
+    bool unregisterChatNode(const NodeInfo &node) override;
+    bool heartbeatChatNode(const std::string &name, const std::string &instance_id) override;
+    std::optional<UserChatLocation> getUserChatNode(int uid) override;
     std::optional<UserChatLocation> getChatNode(const std::string &name);
-    bool bindUserToNode(int uid, const std::string &node_name);
+    bool bindUserToNode(int uid, const std::string &node_name) override;
     bool unbindUser(int uid);
 
 private:

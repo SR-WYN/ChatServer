@@ -10,6 +10,8 @@ target_include_directories(chatserver_includes INTERFACE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/domain/contract
+
     ${CMAKE_CURRENT_SOURCE_DIR}/net
 
     ${CMAKE_CURRENT_SOURCE_DIR}/application

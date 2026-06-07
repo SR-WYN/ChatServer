@@ -8,17 +8,17 @@ MySqlMgr::MySqlMgr()
 
 MySqlMgr::~MySqlMgr() = default;
 
-UserDao &MySqlMgr::users()
+IUserRepository &MySqlMgr::users()
 {
     return _user_dao;
 }
 
-FriendDao &MySqlMgr::friends()
+IFriendRepository &MySqlMgr::friends()
 {
     return _friend_dao;
 }
 
-ChatMessageDao &MySqlMgr::chatMessages()
+IChatMessageRepository &MySqlMgr::chatMessages()
 {
     return _chat_message_dao;
 }

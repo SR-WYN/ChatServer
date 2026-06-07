@@ -1,6 +1,9 @@
 #pragma once
 #include "ChatMessageDao.h"
 #include "FriendDao.h"
+#include "IChatMessageRepository.h"
+#include "IFriendRepository.h"
+#include "IUserRepository.h"
 #include "Singleton.h"
 #include "UserDao.h"
 
@@ -10,9 +13,9 @@ class MySqlMgr : public Singleton<MySqlMgr>
 
 public:
     ~MySqlMgr() override;
-    UserDao &users();
-    FriendDao &friends();
-    ChatMessageDao &chatMessages();
+    IUserRepository &users();
+    IFriendRepository &friends();
+    IChatMessageRepository &chatMessages();
 
 private:
     MySqlMgr();

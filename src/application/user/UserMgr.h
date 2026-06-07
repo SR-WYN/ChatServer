@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IUserSessionManager.h"
 #include "Singleton.h"
 #include <memory>
 #include <mutex>
@@ -7,14 +8,14 @@
 
 class CSession;
 
-class UserMgr : public Singleton<UserMgr>
+class UserMgr : public Singleton<UserMgr>, public IUserSessionManager
 {
     friend class Singleton<UserMgr>;
 public:
     ~UserMgr() override;
-    std::shared_ptr<CSession> getSession(int uid);
-    void setUserSession(int uid,std::shared_ptr<CSession> session);
-    void RemoveUserSession(int uid);
+    std::shared_ptr<CSession> getSession(int uid) override;
+    void setUserSession(int uid,std::shared_ptr<CSession> session) override;
+    void RemoveUserSession(int uid) override;
 private:
     UserMgr();
     std::mutex _mutex;
