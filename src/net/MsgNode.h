@@ -23,6 +23,7 @@ class RecvNode : public MsgNode
 public:
     RecvNode(short body_len, short msg_id);
     short getMsgId();
+
 private:
     short _msg_id;
 };
@@ -32,6 +33,7 @@ class SendNode : public MsgNode
 public:
     // 按协议组包：[2B msg_id][2B body_len][body]。
     SendNode(const char *body, short body_len, short msg_id);
+
 private:
     short _msg_id;
 };

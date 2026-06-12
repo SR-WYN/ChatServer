@@ -1,13 +1,13 @@
 #pragma once
 
-#include "IChatMessageRepository.h"
 #include "ChatMessage.h"
+#include "ChatMessageRepository.h"
 #include <cstdint>
 #include <string>
 #include <vector>
 
 // 聊天消息数据访问层：封装 MySQL 读写操作
-class ChatMessageDao : public IChatMessageRepository
+class ChatMessageDao : public ChatMessageRepository
 {
 public:
     bool saveMessage(const ChatMessage &msg) override;
@@ -17,5 +17,5 @@ public:
                            std::vector<uint64_t> &out_inbox_ids) override;
     bool removeOfflineByIds(const std::vector<uint64_t> &inbox_ids) override;
     bool queryHistory(int self_uid, int peer_uid, uint64_t before_id, int limit,
-                    std::vector<ChatMessage> &out) override;
+                      std::vector<ChatMessage> &out) override;
 };

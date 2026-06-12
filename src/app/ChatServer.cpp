@@ -52,8 +52,8 @@ int main()
                 node_id = static_cast<uint64_t>(std::stoul(slot_key.substr(4)));
             }
             g_snowflake = new utils::SnowflakeId(node_id);
-            LOGI(LogModule::App, "SnowflakeId initialized | node_id={} slot_key={}",
-                 node_id, slot_key);
+            LOGI(LogModule::App, "SnowflakeId initialized | node_id={} slot_key={}", node_id,
+                 slot_key);
         }
 
         // ---- 3. 初始化工作线程 ----

@@ -3,10 +3,10 @@
 #include "MySqlMgr.h"
 #include "const.h"
 #include "utils.h"
+#include <algorithm>
 #include <json/reader.h>
 #include <json/value.h>
 #include <json/writer.h>
-#include <algorithm>
 #include <map>
 #include <set>
 #include <vector>
@@ -90,7 +90,7 @@ void ChatQueryHandler::handleHistory(std::shared_ptr<CSession> session, const sh
     std::vector<ChatMessage> messages;
     if (!repo.queryHistory(self_uid, peer_uid, before_id, limit, messages))
     {
-        result["error"] = ErrorCodes::RPCFAILED;
+        result["error"] = ErrorCodes::RPC_FAILED;
         return;
     }
 

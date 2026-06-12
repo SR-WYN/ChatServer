@@ -1,15 +1,15 @@
 #pragma once
 
-#include "IFriendRepository.h"
-#include "data.h"
+#include "FriendRepository.h"
 #include <memory>
 #include <string>
 #include <vector>
 
-class FriendDao : public IFriendRepository
+class FriendDao : public FriendRepository
 {
 public:
-    bool addFriendApply(const int &uid, const int &touid, const std::string &apply_alias_name) override;
+    bool addFriendApply(const int &uid, const int &touid,
+                        const std::string &apply_alias_name) override;
     bool getFriendAlias(int self_id, int friend_id, std::string &out_alias) override;
     bool getFriendApplyAlias(int from_uid, int to_uid, std::string &out_alias) override;
     bool getApplyList(const int &touid, std::vector<std::shared_ptr<ApplyInfo>> &list,

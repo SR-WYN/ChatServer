@@ -2,8 +2,8 @@
 
 #include "Singleton.h"
 #include <boost/asio.hpp>
-#include <vector>
 #include <mutex>
+#include <vector>
 
 class AsioIOServicePool : public Singleton<AsioIOServicePool>
 {

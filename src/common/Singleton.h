@@ -7,8 +7,9 @@ protected:
     virtual ~Singleton()
     {
     }
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
+    Singleton(const Singleton &) = delete;
+    Singleton &operator=(const Singleton &) = delete;
+
 public:
     static T &getInstance()
     {

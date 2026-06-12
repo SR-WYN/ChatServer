@@ -1,3 +1,4 @@
+// ChatMessageRepository.h - 聊天消息持久化存储接口
 #pragma once
 
 #include "ChatMessage.h"
@@ -5,13 +6,12 @@
 #include <string>
 #include <vector>
 
-// 聊天消息仓储接口：聊天消息的持久化存储
-class IChatMessageRepository
+/// 聊天消息仓储接口
+class ChatMessageRepository
 {
 public:
-    virtual ~IChatMessageRepository() = default;
+    virtual ~ChatMessageRepository() = default;
 
-    // 保存消息（msg.id 已由调用方赋值为雪花 ID）
     virtual bool saveMessage(const ChatMessage &msg) = 0;
     virtual bool existsByClientMsgId(int from_uid, const std::string &client_msg_id) = 0;
     virtual bool enqueueOffline(uint64_t message_id, int owner_uid) = 0;

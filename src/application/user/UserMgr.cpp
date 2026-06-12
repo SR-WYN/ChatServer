@@ -5,7 +5,6 @@
 
 UserMgr::UserMgr()
 {
-
 }
 
 UserMgr::~UserMgr()
@@ -25,13 +24,13 @@ std::shared_ptr<CSession> UserMgr::getSession(int uid)
     return iter->second;
 }
 
-void UserMgr::setUserSession(int uid,std::shared_ptr<CSession> session)
+void UserMgr::setUserSession(int uid, std::shared_ptr<CSession> session)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _uid_to_session[uid] = session;
 }
 
-void UserMgr::RemoveUserSession(int uid)
+void UserMgr::removeUserSession(int uid)
 {
     // auto uid_str = std::to_string(uid);
     {

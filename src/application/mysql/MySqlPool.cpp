@@ -41,7 +41,7 @@ void MySqlPool::initPool(const std::string &url, const std::string &user, const 
     _pass = pass;
     _schema = schema;
     _pool_size = poolSize;
-    _b_stop.store(false);
+    _stop.store(false);
     _fail_count.store(0);
     try
     {
@@ -58,7 +58,7 @@ void MySqlPool::initPool(const std::string &url, const std::string &user, const 
             _pool.push(std::make_unique<SqlConnection>(con, timestamp));
         }
         _check_thread = std::thread([this]() {
-            while (!_b_stop)
+            while (!_stop)
             {
                 checkConnection();
                 std::this_thread::sleep_for(std::chrono::seconds(60));
@@ -89,14 +89,14 @@ std::unique_ptr<SqlConnection> MySqlPool::getConnection()
 {
     std::unique_lock<std::mutex> lock(_mutex);
     _cond.wait(lock, [this]() {
-        if (_b_stop)
+        if (_stop)
         {
             return true;
         }
         return !_pool.empty();
     });
 
-    if (_b_stop)
+    if (_stop)
     {
         return nullptr;
     }
@@ -109,7 +109,7 @@ std::unique_ptr<SqlConnection> MySqlPool::getConnection()
 void MySqlPool::returnConnection(std::unique_ptr<SqlConnection> con)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (_b_stop)
+    if (_stop)
     {
         return;
     }
@@ -120,7 +120,7 @@ void MySqlPool::returnConnection(std::unique_ptr<SqlConnection> con)
 void MySqlPool::close()
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    _b_stop = true;
+    _stop = true;
     _cond.notify_all();
 }
 

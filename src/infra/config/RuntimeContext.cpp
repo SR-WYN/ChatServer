@@ -34,8 +34,8 @@ std::optional<NodeInfo> RuntimeContext::tryRegisterNode()
 }
 
 // 遍历配置槽位列表，bind 端口后回调 accept，接受则返回该 NodeInfo
-std::optional<NodeInfo> RuntimeContext::forEachSlot(
-    const std::function<bool(const NodeInfo &)> &accept)
+std::optional<NodeInfo>
+RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
 {
     auto &cfg = ConfigMgr::getInstance();
     const std::string slots_csv = cfg["ChatNodePool"]["Slots"];
@@ -64,10 +64,10 @@ std::optional<NodeInfo> RuntimeContext::forEachSlot(
 
         std::string node_section = "ChatNode_" + slot_key;
         auto section = cfg[node_section];
-        tcp_port  = section["TcpPort"];
-        rpc_port  = section["RpcPort"];
+        tcp_port = section["TcpPort"];
+        rpc_port = section["RpcPort"];
         client_host = section["ClientAdvertiseHost"];
-        rpc_host    = section["RpcAdvertiseHost"];
+        rpc_host = section["RpcAdvertiseHost"];
 
         if (!tcp_port.empty() && !rpc_port.empty() && !client_host.empty() && !rpc_host.empty())
         {
@@ -76,34 +76,38 @@ std::optional<NodeInfo> RuntimeContext::forEachSlot(
 
         if (!found)
         {
-            Log::warn(LogModule::Config, "forEachSlot: slot={} config not found in ChatNodePool.Nodes", slot_key);
+            Log::warn(LogModule::Config,
+                      "forEachSlot: slot={} config not found in ChatNodePool.Nodes", slot_key);
             continue;
         }
 
         // 端口已被占用则跳过
         if (!utils::isPortAvailable("0.0.0.0", tcp_port))
         {
-            Log::warn(LogModule::Config, "forEachSlot: slot={} tcp port {} unavailable", slot_key, tcp_port);
+            Log::warn(LogModule::Config, "forEachSlot: slot={} tcp port {} unavailable", slot_key,
+                      tcp_port);
             continue;
         }
         if (!utils::isPortAvailable("0.0.0.0", rpc_port))
         {
-            Log::warn(LogModule::Config, "forEachSlot: slot={} rpc port {} unavailable", slot_key, rpc_port);
+            Log::warn(LogModule::Config, "forEachSlot: slot={} rpc port {} unavailable", slot_key,
+                      rpc_port);
             continue;
         }
 
         NodeInfo info;
-        info.slot_key              = slot_key;
-        info.name                  = "ChatNode-" + slot_key;
-        info.instance_uid          = instance_uid;
-        info.tcp_port              = tcp_port;
-        info.rpc_port              = rpc_port;
+        info.slot_key = slot_key;
+        info.name = "ChatNode-" + slot_key;
+        info.instance_uid = instance_uid;
+        info.tcp_port = tcp_port;
+        info.rpc_port = rpc_port;
         info.client_advertise_host = client_host;
         info.client_advertise_port = tcp_port;
-        info.rpc_advertise_host    = rpc_host;
-        info.rpc_advertise_port    = rpc_port;
+        info.rpc_advertise_host = rpc_host;
+        info.rpc_advertise_port = rpc_port;
 
-        Log::info(LogModule::Config, "forEachSlot: slot={} ports=[tcp={},rpc={}] client_host={} rpc_host={} trying",
+        Log::info(LogModule::Config,
+                  "forEachSlot: slot={} ports=[tcp={},rpc={}] client_host={} rpc_host={} trying",
                   slot_key, tcp_port, rpc_port, client_host, rpc_host);
 
         if (accept(info))
@@ -120,20 +124,20 @@ std::optional<NodeInfo> RuntimeContext::forEachSlot(
 // 设置当前节点身份信息
 void RuntimeContext::setNodeInfo(const NodeInfo &node)
 {
-    self_info_ = node;
-    is_initialized_ = true;
-    Log::info(LogModule::Config, "setNodeInfo: slot={} name={} uid={}",
-              node.slot_key, node.name, node.instance_uid);
+    _self_info = node;
+    _is_initialized = true;
+    Log::info(LogModule::Config, "setNodeInfo: slot={} name={} uid={}", node.slot_key, node.name,
+              node.instance_uid);
 }
 
 // 获取当前节点身份信息
 const NodeInfo &RuntimeContext::getNodeInfo() const
 {
-    return self_info_;
+    return _self_info;
 }
 
 // 当前节点是否已初始化
 bool RuntimeContext::isInitialized() const
 {
-    return is_initialized_;
+    return _is_initialized;
 }

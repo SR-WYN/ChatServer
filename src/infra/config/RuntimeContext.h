@@ -8,16 +8,16 @@
 // 当前 ChatNode 的运行时身份信息
 struct NodeInfo
 {
-    std::string slot_key;               // 配置槽位标识
-    std::string name;                   // 节点名
-    std::string instance_uid;           // 实例唯一标识
+    std::string slot_key;     // 配置槽位标识
+    std::string name;         // 节点名
+    std::string instance_uid; // 实例唯一标识
     std::string tcp_host = "0.0.0.0";
     std::string tcp_port;
     std::string rpc_host = "0.0.0.0";
     std::string rpc_port;
-    std::string client_advertise_host;  // 对客户端公布的地址
+    std::string client_advertise_host; // 对客户端公布的地址
     std::string client_advertise_port;
-    std::string rpc_advertise_host;     // 对 RPC 对端公布的地址
+    std::string rpc_advertise_host; // 对 RPC 对端公布的地址
     std::string rpc_advertise_port;
 };
 
@@ -47,9 +47,8 @@ private:
     RuntimeContext() = default;
 
     // 遍历配置槽位，bind 端口后回调 accept，接受则返回该 NodeInfo
-    static std::optional<NodeInfo> forEachSlot(
-        const std::function<bool(const NodeInfo &)> &accept);
+    static std::optional<NodeInfo> forEachSlot(const std::function<bool(const NodeInfo &)> &accept);
 
-    NodeInfo self_info_;
-    bool is_initialized_ = false;
+    NodeInfo _self_info;
+    bool _is_initialized = false;
 };

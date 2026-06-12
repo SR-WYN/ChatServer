@@ -5,7 +5,8 @@
 
 class CSession;
 
-class FriendHandler {
+class FriendHandler
+{
 public:
     static void handleAddFriend(std::shared_ptr<CSession> session, const short &msg_id,
                                 const std::string &msg_data);

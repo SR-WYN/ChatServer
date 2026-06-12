@@ -35,8 +35,7 @@ bool deliverToLocalSession(int from_uid, int to_uid, const Json::Value &text_arr
 }
 } // namespace
 
-bool ChatMessageHandler::deliverTextChat(int from_uid, int to_uid,
-                                         const Json::Value &text_array,
+bool ChatMessageHandler::deliverTextChat(int from_uid, int to_uid, const Json::Value &text_array,
                                          const Json::Value &return_value)
 {
     // 本机有会话则直接推送
@@ -116,8 +115,7 @@ bool persistOneMessage(int from_uid, int to_uid, const std::string &msgid,
 } // namespace
 
 void ChatMessageHandler::persistOutgoingBatch(int from_uid, int to_uid,
-                                              const Json::Value &text_array,
-                                              bool delivered_online)
+                                              const Json::Value &text_array, bool delivered_online)
 {
     if (!text_array.isArray() || text_array.empty())
     {
@@ -183,7 +181,6 @@ void ChatMessageHandler::handleTextChat(std::shared_ptr<CSession> session, const
         session->send(return_str, MSG_TEXT_CHAT_MSG_RSP);
     });
 
-    const bool delivered_online =
-        deliverTextChat(fromuid, touid, text_array, return_value);
+    const bool delivered_online = deliverTextChat(fromuid, touid, text_array, return_value);
     persistOutgoingBatch(fromuid, touid, text_array, delivered_online);
 }

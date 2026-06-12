@@ -17,7 +17,8 @@ void HeartBeatHandler::start(CServer &server)
     _server = &server;
     _idle_sweep_timer = std::make_unique<boost::asio::steady_timer>(server.ioContext());
     scheduleIdleSweep();
-    LOGI(LogModule::Net, "HeartBeatHandler started, idle sweep interval={}s", IDLE_SWEEP_INTERVAL_SECONDS);
+    LOGI(LogModule::Net, "HeartBeatHandler started, idle sweep interval={}s",
+         IDLE_SWEEP_INTERVAL_SECONDS);
 }
 
 // 停止心跳管理：取消定时器，清空引用
@@ -112,6 +113,7 @@ void HeartBeatHandler::runIdleSweep()
 
     if (closed > 0)
     {
-        LOGI(LogModule::Net, "idle sweep closed {} sessions (timeout={}s)", closed, SESSION_APP_IDLE_SECONDS);
+        LOGI(LogModule::Net, "idle sweep closed {} sessions (timeout={}s)", closed,
+             SESSION_APP_IDLE_SECONDS);
     }
 }

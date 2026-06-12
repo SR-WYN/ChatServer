@@ -1,4 +1,5 @@
 #include "CSession.h"
+#include "AsioIOServicePool.h"
 #include "CServer.h"
 #include "ConfigMgr.h"
 #include "Log.h"
@@ -9,13 +10,16 @@
 #include "StatusGrpcClient.h"
 #include "UserMgr.h"
 #include "const.h"
-#include <boost/asio/detail/socket_ops.hpp>
+#include "utils.h"
+#include <boost/asio.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <chrono>
 #include <cstring>
-#include <iostream>
+#include <json/reader.h>
+#include <json/value.h>
+#include <json/writer.h>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -271,7 +275,7 @@ void CSession::close()
         const auto count_str = std::to_string(count);
         RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, server_name.c_str(),
                                      count_str.c_str(), count_str.size());
-        UserMgr::getInstance().RemoveUserSession(_user_uid);
+        UserMgr::getInstance().removeUserSession(_user_uid);
         LOGI(LogModule::Net, "session closed, uid={}, session={}", _user_uid, _session_id);
         _user_uid = 0;
     }

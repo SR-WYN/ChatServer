@@ -1,11 +1,11 @@
 #pragma once
 
-#include "IUserRepository.h"
-#include "data.h"
+#include "Singleton.h"
+#include "UserRepository.h"
 #include <memory>
 #include <string>
 
-class UserDao : public IUserRepository
+class UserDao : public UserRepository
 {
 public:
     std::shared_ptr<UserInfo> getUserInfo(int uid) override;

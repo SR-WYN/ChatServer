@@ -16,10 +16,10 @@ unsigned char toHex(unsigned char x);
 unsigned char fromHex(unsigned char x);
 
 /** 对URL进行编码 */
-std::string urlEncode(const std::string& str);
+std::string urlEncode(const std::string &str);
 
 /** 对URL进行解码 */
-std::string urlDecode(const std::string& str);
+std::string urlDecode(const std::string &str);
 
 // ---- RAII ----
 
@@ -28,8 +28,8 @@ class Defer
 public:
     explicit Defer(std::function<void()> func);
     ~Defer();
-    Defer(const Defer&) = delete;
-    Defer& operator=(const Defer&) = delete;
+    Defer(const Defer &) = delete;
+    Defer &operator=(const Defer &) = delete;
 
 private:
     std::function<void()> _func;
@@ -62,9 +62,9 @@ std::string makeInstanceUid();
 class SnowflakeId
 {
 public:
-    static constexpr uint64_t kEpoch = 1735689600000ULL;          // 自定义纪元毫秒
-    static constexpr uint64_t kMaxNodeId = (1ULL << 10) - 1;     // 1023
-    static constexpr uint64_t kMaxSequence = (1ULL << 12) - 1;   // 4095
+    static constexpr uint64_t kEpoch = 1735689600000ULL;       // 自定义纪元毫秒
+    static constexpr uint64_t kMaxNodeId = (1ULL << 10) - 1;   // 1023
+    static constexpr uint64_t kMaxSequence = (1ULL << 12) - 1; // 4095
     static constexpr uint64_t kNodeIdShift = 12;
     static constexpr uint64_t kTimestampShift = 22;
 

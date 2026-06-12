@@ -5,7 +5,8 @@
 
 class CSession;
 
-class UserHandler {
+class UserHandler
+{
 public:
     static void handleSearchUser(std::shared_ptr<CSession> session, const short &msg_id,
                                  const std::string &msg_data);

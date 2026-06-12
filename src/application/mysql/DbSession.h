@@ -6,7 +6,7 @@
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
 #include <functional>
-#include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 

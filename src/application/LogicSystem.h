@@ -3,8 +3,8 @@
 #include "Singleton.h"
 #include "data.h"
 #include <functional>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 class CSession;
 class LogicNode;

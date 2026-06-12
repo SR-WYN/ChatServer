@@ -3,7 +3,6 @@
 #include <cppconn/connection.h>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
-#include <iostream>
 #include <memory>
 #include <string>
 
@@ -57,7 +56,9 @@ bool ChatMessageDao::existsByClientMsgId(int from_uid, const std::string &client
             stmt.setInt(1, from_uid);
             stmt.setString(2, client_msg_id);
         },
-        [](sql::ResultSet &) { return true; });
+        [](sql::ResultSet &) {
+            return true;
+        });
 }
 
 bool ChatMessageDao::enqueueOffline(uint64_t message_id, int owner_uid)
@@ -121,9 +122,8 @@ bool ChatMessageDao::queryHistory(int self_uid, int peer_uid, uint64_t before_id
         limit = 200;
     }
 
-    std::string sql =
-        "SELECT id, client_msg_id, from_uid, to_uid, content FROM chat_message "
-        "WHERE ((from_uid = ? AND to_uid = ?) OR (from_uid = ? AND to_uid = ?)) ";
+    std::string sql = "SELECT id, client_msg_id, from_uid, to_uid, content FROM chat_message "
+                      "WHERE ((from_uid = ? AND to_uid = ?) OR (from_uid = ? AND to_uid = ?)) ";
     if (before_id > 0)
     {
         sql += "AND id < ? ";
@@ -144,7 +144,9 @@ bool ChatMessageDao::queryHistory(int self_uid, int peer_uid, uint64_t before_id
                     stmt.setUInt64(idx++, before_id);
                 }
             },
-            [](sql::ResultSet &rs) { return readChatMsg(rs); },
+            [](sql::ResultSet &rs) {
+                return readChatMsg(rs);
+            },
             reversed))
     {
         return false;

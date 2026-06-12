@@ -23,7 +23,7 @@ AsioIOServicePool::~AsioIOServicePool()
 boost::asio::io_context &AsioIOServicePool::getIOService()
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    auto& service = _io_services[_next_io_service++];
+    auto &service = _io_services[_next_io_service++];
     if (_next_io_service == _io_services.size())
     {
         _next_io_service = 0;
@@ -33,13 +33,13 @@ boost::asio::io_context &AsioIOServicePool::getIOService()
 
 void AsioIOServicePool::stop()
 {
-    for (auto& work : _works)
+    for (auto &work : _works)
     {
         work->get_io_context().stop();
         work.reset();
     }
 
-    for (auto& thread : _threads)
+    for (auto &thread : _threads)
     {
         thread.join();
     }

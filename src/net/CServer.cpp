@@ -43,8 +43,8 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
         new_session->start();
         std::lock_guard<std::mutex> lock(_mutex);
         _sessions[new_session->getSessionId()] = new_session;
-        LOGI(LogModule::Net, "client connected, session={}, total={}",
-             new_session->getSessionId(), _sessions.size());
+        LOGI(LogModule::Net, "client connected, session={}, total={}", new_session->getSessionId(),
+             _sessions.size());
     }
     else
     {

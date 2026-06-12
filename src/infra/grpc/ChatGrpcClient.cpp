@@ -33,8 +33,8 @@ ChatConPool &ChatGrpcClient::getOrCreatePool(const std::string &host, const std:
     return ref;
 }
 
-AddFriendRsp ChatGrpcClient::NotifyAddFriend(const std::string &rpc_host, const std::string &rpc_port,
-                                             const AddFriendReq &req)
+AddFriendRsp ChatGrpcClient::NotifyAddFriend(const std::string &rpc_host,
+                                             const std::string &rpc_port, const AddFriendReq &req)
 {
     AddFriendRsp rsp;
     utils::Defer defer([&rsp, &req]() {
@@ -44,22 +44,25 @@ AddFriendRsp ChatGrpcClient::NotifyAddFriend(const std::string &rpc_host, const 
     });
     if (rpc_host.empty() || rpc_port.empty())
     {
-        rsp.set_error(ErrorCodes::RPCFAILED);
+        rsp.set_error(ErrorCodes::RPC_FAILED);
         return rsp;
     }
     auto &pool = getOrCreatePool(rpc_host, rpc_port);
     ClientContext context;
     auto stub = pool.getConnection();
     Status status = stub->NotifyAddFriend(&context, req, &rsp);
-    utils::Defer defercon([&stub, &pool]() { pool.returnConnection(std::move(stub)); });
+    utils::Defer defercon([&stub, &pool]() {
+        pool.returnConnection(std::move(stub));
+    });
     if (!status.ok())
     {
-        rsp.set_error(ErrorCodes::RPCFAILED);
+        rsp.set_error(ErrorCodes::RPC_FAILED);
     }
     return rsp;
 }
 
-AuthFriendRsp ChatGrpcClient::NotifyAuthFriend(const std::string &rpc_host, const std::string &rpc_port,
+AuthFriendRsp ChatGrpcClient::NotifyAuthFriend(const std::string &rpc_host,
+                                               const std::string &rpc_port,
                                                const AuthFriendReq &req)
 {
     AuthFriendRsp rsp;
@@ -70,23 +73,27 @@ AuthFriendRsp ChatGrpcClient::NotifyAuthFriend(const std::string &rpc_host, cons
     });
     if (rpc_host.empty() || rpc_port.empty())
     {
-        rsp.set_error(ErrorCodes::RPCFAILED);
+        rsp.set_error(ErrorCodes::RPC_FAILED);
         return rsp;
     }
     auto &pool = getOrCreatePool(rpc_host, rpc_port);
     ClientContext context;
     auto stub = pool.getConnection();
     Status status = stub->NotifyAuthFriend(&context, req, &rsp);
-    utils::Defer defercon([&stub, &pool]() { pool.returnConnection(std::move(stub)); });
+    utils::Defer defercon([&stub, &pool]() {
+        pool.returnConnection(std::move(stub));
+    });
     if (!status.ok())
     {
-        rsp.set_error(ErrorCodes::RPCFAILED);
+        rsp.set_error(ErrorCodes::RPC_FAILED);
     }
     return rsp;
 }
 
-TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(const std::string &rpc_host, const std::string &rpc_port,
-                                                 const TextChatMsgReq &req, const Json::Value &root_value)
+TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(const std::string &rpc_host,
+                                                 const std::string &rpc_port,
+                                                 const TextChatMsgReq &req,
+                                                 const Json::Value &root_value)
 {
     TextChatMsgRsp rsp;
     rsp.set_error(ErrorCodes::SUCCESS);
@@ -102,17 +109,19 @@ TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(const std::string &rpc_host, co
     });
     if (rpc_host.empty() || rpc_port.empty())
     {
-        rsp.set_error(ErrorCodes::RPCFAILED);
+        rsp.set_error(ErrorCodes::RPC_FAILED);
         return rsp;
     }
     auto &pool = getOrCreatePool(rpc_host, rpc_port);
     ClientContext context;
     auto stub = pool.getConnection();
     Status status = stub->NotifyTextChatMsg(&context, req, &rsp);
-    utils::Defer defercon([&stub, &pool]() { pool.returnConnection(std::move(stub)); });
+    utils::Defer defercon([&stub, &pool]() {
+        pool.returnConnection(std::move(stub));
+    });
     if (!status.ok())
     {
-        rsp.set_error(ErrorCodes::RPCFAILED);
+        rsp.set_error(ErrorCodes::RPC_FAILED);
     }
     return rsp;
 }

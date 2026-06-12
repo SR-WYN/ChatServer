@@ -1,5 +1,6 @@
 #include "ChatServiceImpl.h"
 #include "CSession.h"
+#include "MySqlMgr.h"
 #include "UserCacheService.h"
 #include "UserMgr.h"
 #include "const.h"
@@ -8,8 +9,6 @@
 #include <json/json.h>
 #include <json/reader.h>
 #include <memory>
-#include "MySqlMgr.h"
-
 
 ChatServiceImpl::ChatServiceImpl()
 {
@@ -115,7 +114,7 @@ Status ChatServiceImpl::NotifyTextChatMsg(ServerContext *context, const TextChat
     notify["touid"] = request->touid();
 
     Json::Value text_array;
-    for (const auto& text_data : request->textmsgs())
+    for (const auto &text_data : request->textmsgs())
     {
         Json::Value element;
         element["msgid"] = text_data.msgid();

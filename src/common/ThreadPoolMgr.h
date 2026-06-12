@@ -3,9 +3,10 @@
 #include "ThreadPool.h"
 #include <memory>
 
-class ThreadPoolMgr :public Singleton<ThreadPoolMgr>
+class ThreadPoolMgr : public Singleton<ThreadPoolMgr>
 {
     friend class Singleton<ThreadPoolMgr>;
+
 public:
     ~ThreadPoolMgr();
 

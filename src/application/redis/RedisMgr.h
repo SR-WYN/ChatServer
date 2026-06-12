@@ -1,5 +1,5 @@
 #pragma once
-#include "ICacheService.h"
+#include "CacheService.h"
 #include "Singleton.h"
 #include <map>
 #include <memory>
@@ -8,7 +8,7 @@
 #include <vector>
 
 // redis-plus-plus 封装，对外保持与原有 hiredis 版本一致的接口
-class RedisMgr : public Singleton<RedisMgr>, public ICacheService
+class RedisMgr : public Singleton<RedisMgr>, public CacheService
 {
     friend class Singleton<RedisMgr>;
 

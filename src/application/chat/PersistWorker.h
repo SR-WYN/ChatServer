@@ -44,10 +44,10 @@ private:
     // 工作线程主循环：消费队列中的任务并写入数据库
     void run();
 
-    std::queue<PersistTask> _queue;   // 待持久化的任务队列
-    std::mutex _mutex;                 // 保护队列的互斥锁
-    std::condition_variable _cv;       // 通知工作线程有新任务或需要停止
-    std::thread _worker;               // 后台工作线程
-    bool _running = false;             // 工作线程是否正在运行
-    bool _stop = false;                // 是否请求停止
+    std::queue<PersistTask> _queue; // 待持久化的任务队列
+    std::mutex _mutex;              // 保护队列的互斥锁
+    std::condition_variable _cv;    // 通知工作线程有新任务或需要停止
+    std::thread _worker;            // 后台工作线程
+    bool _running = false;          // 工作线程是否正在运行
+    bool _stop = false;             // 是否请求停止
 };

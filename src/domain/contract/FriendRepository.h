@@ -1,3 +1,4 @@
+// FriendRepository.h - 好友关系与申请的持久化存储接口
 #pragma once
 
 #include "data.h"
@@ -5,11 +6,11 @@
 #include <string>
 #include <vector>
 
-// 好友仓储接口：好友关系与申请的持久化存储
-class IFriendRepository
+/// 好友仓储接口
+class FriendRepository
 {
 public:
-    virtual ~IFriendRepository() = default;
+    virtual ~FriendRepository() = default;
 
     virtual bool addFriendApply(const int &uid, const int &touid,
                                 const std::string &apply_alias_name) = 0;

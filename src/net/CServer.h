@@ -31,9 +31,9 @@ private:
     // 启动异步接受连接
     void StartAccept();
 
-    boost::asio::io_context &_io_context;                    // 关联的 io_context
-    short _port;                                              // 监听端口
-    boost::asio::ip::tcp::acceptor _acceptor;                 // TCP 接受器
+    boost::asio::io_context &_io_context;                       // 关联的 io_context
+    short _port;                                                // 监听端口
+    boost::asio::ip::tcp::acceptor _acceptor;                   // TCP 接受器
     std::map<std::string, std::shared_ptr<CSession>> _sessions; // 当前活跃会话（uuid -> session）
-    std::mutex _mutex;                                        // 保护 _sessions 的互斥锁
+    std::mutex _mutex;                                          // 保护 _sessions 的互斥锁
 };

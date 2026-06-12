@@ -7,12 +7,7 @@
 
 struct SectionInfo
 {
-    SectionInfo();
-    ~SectionInfo();
-    SectionInfo(const SectionInfo &src);
-    SectionInfo &operator=(const SectionInfo &src);
-
-    std::string operator[](const std::string &key);
+    std::string operator[](const std::string &key) const;
     std::map<std::string, std::string> _section_datas;
 };
 
@@ -23,7 +18,7 @@ class ConfigMgr : public Singleton<ConfigMgr>
 public:
     ~ConfigMgr() override;
 
-    SectionInfo operator[](const std::string &section);
+    SectionInfo operator[](const std::string &section) const;
     LogConfig getLogConfig() const;
 
 private:

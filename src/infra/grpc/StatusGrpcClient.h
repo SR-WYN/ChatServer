@@ -1,21 +1,21 @@
-#include "IStatusServiceClient.h"
 #include "RuntimeContext.h"
 #include "Singleton.h"
+#include "StatusServiceClient.h"
 #include "message.grpc.pb.h"
 #include "message.pb.h"
 #include <grpcpp/grpcpp.h>
 #include <optional>
 #include <string>
 
-using message::GetChatServerRsp;
 using message::GetChatServerReq;
+using message::GetChatServerRsp;
 
 using grpc::ClientContext;
 using grpc::Status;
 
 class StatusConPool;
 
-class StatusGrpcClient : public Singleton<StatusGrpcClient>, public IStatusServiceClient
+class StatusGrpcClient : public Singleton<StatusGrpcClient>, public StatusServiceClient
 {
     friend class Singleton<StatusGrpcClient>;
 

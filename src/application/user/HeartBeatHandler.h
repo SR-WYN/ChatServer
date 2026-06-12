@@ -8,7 +8,8 @@ class CServer;
 class CSession;
 
 // 应用层心跳管理：Ping/Pong 响应、会话活动时间更新、空闲连接定期扫描与关闭
-class HeartBeatHandler {
+class HeartBeatHandler
+{
 public:
     // 启动心跳管理（创建定时器，开始空闲扫描）
     static void start(CServer &server);
@@ -32,6 +33,6 @@ private:
     // 执行空闲连接扫描，关闭超时会话
     static void runIdleSweep();
 
-    static CServer *_server;                                    // 关联的 TCP 服务器
+    static CServer *_server;                                             // 关联的 TCP 服务器
     static std::unique_ptr<boost::asio::steady_timer> _idle_sweep_timer; // 空闲扫描定时器
 };

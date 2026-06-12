@@ -2,48 +2,21 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
-#include <iostream>
 #include <json/reader.h>
 
-SectionInfo::SectionInfo()
+std::string SectionInfo::operator[](const std::string &key) const
 {
-
-}
-
-SectionInfo::~SectionInfo()
-{
-    _section_datas.clear();
-}
-
-SectionInfo::SectionInfo(const SectionInfo &src)
-{
-    _section_datas = src._section_datas;
-}
-
-SectionInfo &SectionInfo::operator=(const SectionInfo &src)
-{
-    if (&src == this)
-    {
-        return *this;
-    }
-    _section_datas = src._section_datas;
-    return *this;
-}
-
-std::string SectionInfo::operator[](const std::string &key)
-{
-    if (_section_datas.find(key) == _section_datas.end())
+    auto it = _section_datas.find(key);
+    if (it == _section_datas.end())
     {
         return "";
     }
-    return _section_datas.at(key);
+    return it->second;
 }
 
 ConfigMgr::ConfigMgr()
 {
-    const boost::filesystem::path config_path =
-        boost::filesystem::current_path() / "config.json";
-
+    const boost::filesystem::path config_path = boost::filesystem::current_path() / "config.json";
 
     std::ifstream file(config_path.string());
     if (!file.is_open())
@@ -53,22 +26,22 @@ ConfigMgr::ConfigMgr()
 
     Json::Value root;
     Json::Reader reader;
-    
-    //解析失败
+
+    // 解析失败
     if (!reader.parse(file, root))
     {
         file.close();
         return;
     }
 
-    for (auto const& section_name : root.getMemberNames())
+    for (auto const &section_name : root.getMemberNames())
     {
         Json::Value section_value = root[section_name];
 
         if (section_value.isObject())
         {
             SectionInfo section_info;
-            for (auto const& key : section_value.getMemberNames())
+            for (auto const &key : section_value.getMemberNames())
             {
                 section_info._section_datas[key] = section_value[key].asString();
             }
@@ -84,8 +57,9 @@ namespace
 spdlog::level::level_enum parseLogLevel(const std::string &level_str)
 {
     std::string level = level_str;
-    std::transform(level.begin(), level.end(), level.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(level.begin(), level.end(), level.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
     if (level == "trace")
     {
         return spdlog::level::trace;
@@ -143,11 +117,12 @@ ConfigMgr::~ConfigMgr()
     _config_map.clear();
 }
 
-SectionInfo ConfigMgr::operator[](const std::string &section)
+SectionInfo ConfigMgr::operator[](const std::string &section) const
 {
-    if (_config_map.find(section) == _config_map.end())
+    auto it = _config_map.find(section);
+    if (it == _config_map.end())
     {
         return SectionInfo();
     }
-    return _config_map[section];
+    return it->second;
 }

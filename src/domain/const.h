@@ -4,7 +4,7 @@ enum ErrorCodes
 {
     SUCCESS = 0,              // 成功
     ERROR_JSON = 1001,        // JSON 解析错误
-    RPCFAILED = 1002,         // RPC 请求错误
+    RPC_FAILED = 1002,        // RPC 请求错误
     VERIFY_EXPIRED = 1003,    // 验证码过期
     VERIFY_CODE_ERROR = 1004, // 验证码错误
     USER_EXIST = 1005,        // 用户已存在
@@ -13,22 +13,22 @@ enum ErrorCodes
     PASSWD_UP_FAILED = 1008,  // 密码更新失败
     PASSWD_INVALID = 1009,    // 密码无效
     PASSWD_NOT_MATCH = 1010,  // 密码不匹配
-    UID_INVALID = 1011,    // 用户不存在
-    TOKEN_INVALID = 1012,    // 令牌无效
+    UID_INVALID = 1011,       // 用户不存在
+    TOKEN_INVALID = 1012,     // 令牌无效
 };
 
 // 单帧包体最大长度（与协议头 2 字节 body_len 一致，最大 32767）
-#define MAX_LENGTH 32767
+inline constexpr int MAX_LENGTH = 32767;
 // 头部总长度
-#define HEAD_TOTAL_LEN 4
+inline constexpr int HEAD_TOTAL_LEN = 4;
 // 头部id长度
-#define HEAD_ID_LEN 2
+inline constexpr int HEAD_ID_LEN = 2;
 // 头部数据长度
-#define HEAD_DATA_LEN 2
+inline constexpr int HEAD_DATA_LEN = 2;
 // 最大接收队列长度
-#define MAX_RECVQUE 10000
+inline constexpr int MAX_RECVQUE = 10000;
 // 最大发送队列长度
-#define MAX_SENDQUE 1000
+inline constexpr int MAX_SENDQUE = 1000;
 
 enum MSG_IDS
 {
@@ -56,12 +56,13 @@ constexpr int SESSION_APP_IDLE_SECONDS = 120;
 // 空闲连接扫描周期（秒）
 constexpr int IDLE_SWEEP_INTERVAL_SECONDS = 10;
 
-namespace RedisPrefix {
-    constexpr const char* CODE = "code_";
-    constexpr const char* USERIPPREFIX = "uip_";
-    constexpr const char* USERTOKENPREFIX = "utoken_";
-    constexpr const char* IPCOUNTPREFIX = "ipcount_";
-    constexpr const char* USER_BASE_INFO = "ubaseinfo_";
-    constexpr const char* USER_NAME_INFO = "unameinfo_";
-    constexpr const char* LOGIN_COUNT = "logincount";
-}
+namespace RedisPrefix
+{
+constexpr const char *CODE = "code_";
+constexpr const char *USERIPPREFIX = "uip_";
+constexpr const char *USERTOKENPREFIX = "utoken_";
+constexpr const char *IPCOUNTPREFIX = "ipcount_";
+constexpr const char *USER_BASE_INFO = "ubaseinfo_";
+constexpr const char *USER_NAME_INFO = "unameinfo_";
+constexpr const char *LOGIN_COUNT = "logincount";
+} // namespace RedisPrefix

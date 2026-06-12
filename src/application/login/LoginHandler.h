@@ -8,7 +8,8 @@ class CSession;
 struct ApplyInfo;
 struct UserInfo;
 
-class LoginHandler {
+class LoginHandler
+{
 public:
     static void handleLogin(std::shared_ptr<CSession> session, const short &msg_id,
                             const std::string &msg_data);

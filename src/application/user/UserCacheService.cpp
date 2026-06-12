@@ -2,7 +2,6 @@
 #include "MySqlMgr.h"
 #include "RedisMgr.h"
 #include "const.h"
-#include <iostream>
 #include <json/reader.h>
 #include <json/writer.h>
 

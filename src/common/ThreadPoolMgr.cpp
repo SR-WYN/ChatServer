@@ -1,8 +1,9 @@
 #include "ThreadPoolMgr.h"
 
-ThreadPoolMgr::ThreadPoolMgr() {
-    _logicPool = std::make_unique<ThreadPool>(std::thread::hardware_concurrency()-1);
-    
+ThreadPoolMgr::ThreadPoolMgr()
+{
+    _logicPool = std::make_unique<ThreadPool>(std::thread::hardware_concurrency() - 1);
+
     // ioPool = std::make_unique<ThreadPool>(std::thread::hardware_concurrency() * 2);
 }
 

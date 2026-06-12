@@ -3,7 +3,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/detail/socket_ops.hpp>
 #include <cstring>
-#include <iostream>
 
 MsgNode::MsgNode(short total_len)
     : _cur_len(0), _total_len(total_len), _data(new char[total_len + 1]())
