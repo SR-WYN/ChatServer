@@ -59,7 +59,6 @@ constexpr int IDLE_SWEEP_INTERVAL_SECONDS = 10;
 namespace RedisPrefix
 {
 constexpr const char *CODE = "code_";
-constexpr const char *USERIPPREFIX = "uip_";
 constexpr const char *USERTOKENPREFIX = "utoken_";
 constexpr const char *IPCOUNTPREFIX = "ipcount_";
 constexpr const char *USER_BASE_INFO = "ubaseinfo_";
