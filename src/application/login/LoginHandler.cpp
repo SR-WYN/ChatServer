@@ -37,20 +37,21 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
         }
     });
 
-    // 从redis中获取用户token是否正确
-    std::string uid_str = std::to_string(uid);
-    std::string token_key = RedisPrefix::USERTOKENPREFIX + uid_str;
-    std::string token_value = "";
-    bool success = RedisMgr::getInstance().get(token_key, token_value);
-    if (!success)
+    // 通过 StatusServer RPC 验证 Token
+    int token_err = StatusGrpcClient::getInstance().validateToken(uid, token);
+    if (token_err == ErrorCodes::UID_INVALID)
     {
         return_value["error"] = ErrorCodes::UID_INVALID;
         return;
     }
-
-    if (token_value != token)
+    if (token_err == ErrorCodes::TOKEN_INVALID)
     {
         return_value["error"] = ErrorCodes::TOKEN_INVALID;
+        return;
+    }
+    if (token_err != ErrorCodes::SUCCESS)
+    {
+        return_value["error"] = ErrorCodes::RPC_FAILED;
         return;
     }
 
@@ -123,10 +124,6 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
                                  count_str.size());
     // session绑定用户uid
     session->setUserId(uid);
-
-    // 为用户设置登录ip server 的名字
-    std::string ipkey = RedisPrefix::USERIPPREFIX + uid_str;
-    RedisMgr::getInstance().set(ipkey, server_name);
 
     // uid和session绑定管理，方便以后踢人操作
     UserMgr::getInstance().setUserSession(uid, session);

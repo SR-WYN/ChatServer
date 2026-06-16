@@ -29,6 +29,9 @@ public:
     bool bindUserToNode(int uid, const std::string &node_name) override;
     bool unbindUser(int uid);
 
+    // 新增：Token 验证
+    int validateToken(int uid, const std::string &token) override;
+
 private:
     StatusGrpcClient(const StatusGrpcClient &) = delete;
     StatusGrpcClient &operator=(const StatusGrpcClient &) = delete;

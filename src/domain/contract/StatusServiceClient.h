@@ -24,4 +24,7 @@ public:
     virtual bool heartbeatChatNode(const std::string &name, const std::string &instance_id) = 0;
     virtual std::optional<UserChatLocation> getUserChatNode(int uid) = 0;
     virtual bool bindUserToNode(int uid, const std::string &node_name) = 0;
+
+    // 新增：Token 验证接口
+    virtual int validateToken(int uid, const std::string &token) = 0;
 };

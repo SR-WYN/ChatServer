@@ -16,6 +16,8 @@ using message::UnbindUserReq;
 using message::UnbindUserRsp;
 using message::UnregisterChatNodeReq;
 using message::UnregisterChatNodeRsp;
+using message::ValidateTokenReq;
+using message::ValidateTokenRsp;
 
 StatusGrpcClient::StatusGrpcClient()
 {
@@ -168,4 +170,31 @@ bool StatusGrpcClient::unbindUser(int uid)
         _pool->returnConnection(std::move(stub));
     });
     return status.ok() && reply.error() == ErrorCodes::SUCCESS;
+}
+
+int StatusGrpcClient::validateToken(int uid, const std::string &token)
+{
+    ClientContext context;
+    ValidateTokenReq request;
+    ValidateTokenRsp reply;
+    request.set_uid(uid);
+    request.set_token(token);
+
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        return ErrorCodes::RPC_FAILED;
+    }
+
+    Status status = stub->ValidateToken(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+
+    if (!status.ok())
+    {
+        return ErrorCodes::RPC_FAILED;
+    }
+
+    return reply.error();
 }

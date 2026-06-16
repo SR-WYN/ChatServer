@@ -24,10 +24,10 @@ int main()
     {
         // ---- 1. 初始化基础设施 ----
         ConfigMgr::getInstance();
-        if (!Log::init("ChatServer", ConfigMgr::getInstance().getLogConfig()))
-        {
-            return 1;
-        }
+        // if (!Log::init("ChatServer", ConfigMgr::getInstance().getLogConfig()))
+        // {
+        //     return 1;
+        // }
         LOGI(LogModule::App, "ChatServer starting");
 
         // ---- 2. 向 StatusServer 注册当前节点 ----
