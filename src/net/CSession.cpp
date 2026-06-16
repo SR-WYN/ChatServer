@@ -262,19 +262,8 @@ void CSession::close()
     {
         const auto &server_name = RuntimeContext::getInstance().getNodeInfo().name;
         StatusGrpcClient::getInstance().unbindUser(_user_uid);
-        auto rd_res = RedisMgr::getInstance().hGet(RedisPrefix::LOGIN_COUNT, server_name);
-        int count = 0;
-        if (!rd_res.empty())
-        {
-            count = std::stoi(rd_res);
-        }
-        if (count > 0)
-        {
-            --count;
-        }
-        const auto count_str = std::to_string(count);
-        RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, server_name.c_str(),
-                                     count_str.c_str(), count_str.size());
+        // LOGIN_COUNT 由 StatusServer 在 unbindUser 中原子维护，ChatServer 不再直接操作
+
         UserMgr::getInstance().removeUserSession(_user_uid);
         LOGI(LogModule::Net, "session closed, uid={}, session={}", _user_uid, _session_id);
         _user_uid = 0;

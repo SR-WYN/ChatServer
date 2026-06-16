@@ -110,18 +110,8 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
     const auto &self = RuntimeContext::getInstance().getNodeInfo();
     const std::string &server_name = self.name;
     StatusGrpcClient::getInstance().bindUserToNode(uid, server_name);
-    // 将登录数量增加
-    auto rd_res = RedisMgr::getInstance().hGet(RedisPrefix::LOGIN_COUNT, server_name);
-    int count = 0;
-    if (!rd_res.empty())
-    {
-        count = std::stoi(rd_res);
-    }
-    count++;
+    // LOGIN_COUNT 由 StatusServer 在 bindUser 中原子维护，ChatServer 不再直接操作
 
-    auto count_str = std::to_string(count);
-    RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, server_name.c_str(), count_str.c_str(),
-                                 count_str.size());
     // session绑定用户uid
     session->setUserId(uid);
 

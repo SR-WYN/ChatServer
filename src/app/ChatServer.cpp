@@ -59,7 +59,6 @@ int main()
         // ---- 3. 初始化工作线程 ----
         const auto &self = RuntimeContext::getInstance().getNodeInfo();
         auto &pool = AsioIOServicePool::getInstance();
-        RedisMgr::getInstance().hSet(RedisPrefix::LOGIN_COUNT, self.name, "0");
         PersistWorker::getInstance().start();
         NodeHeartbeat::start();
 
@@ -98,7 +97,6 @@ int main()
         NodeHeartbeat::stop();
         PersistWorker::getInstance().stop();
         StatusGrpcClient::getInstance().unregisterChatNode(self);
-        RedisMgr::getInstance().hDel(RedisPrefix::LOGIN_COUNT, self.name);
         RedisMgr::getInstance().close();
         grpc_server_thread.join();
         delete g_snowflake;
