@@ -3,8 +3,9 @@
 #include "ChatGrpcClient.h"
 #include "MySqlMgr.h"
 #include "RuntimeContext.h"
+#include "ServiceLocator.h"
 #include "StatusGrpcClient.h"
-#include "UserCacheService.h"
+#include "UserInfoCache.h"
 #include "UserMgr.h"
 #include "const.h"
 #include "data.h"
@@ -44,7 +45,7 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
     }
 
     auto apply_info = std::make_shared<UserInfo>();
-    bool b_info = UserCacheService::getByUid(uid, apply_info);
+    bool b_info = ServiceLocator::getService<UserInfoCache>()->getByUid(uid, apply_info);
 
     const auto &self_name = RuntimeContext::getInstance().getNodeInfo().name;
     if (peer_loc->node_name == self_name)
@@ -106,7 +107,7 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     auto user_info = std::make_shared<UserInfo>();
 
     // 给同意方返回：刚通过的好友是申请人 applicant 的资料
-    bool b_info = UserCacheService::getByUid(applicant_uid, user_info);
+    bool b_info = ServiceLocator::getService<UserInfoCache>()->getByUid(applicant_uid, user_info);
     if (b_info)
     {
         return_value["name"] = user_info->name;
@@ -152,7 +153,7 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
             notify["fromuid"] = accepter_uid;
             notify["touid"] = applicant_uid;
             auto peer_info = std::make_shared<UserInfo>();
-            bool b_into = UserCacheService::getByUid(accepter_uid, peer_info);
+            bool b_into = ServiceLocator::getService<UserInfoCache>()->getByUid(accepter_uid, peer_info);
             if (b_into)
             {
                 notify["name"] = peer_info->name;

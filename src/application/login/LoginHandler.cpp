@@ -4,8 +4,9 @@
 #include "MySqlMgr.h"
 #include "RedisMgr.h"
 #include "RuntimeContext.h"
+#include "ServiceLocator.h"
 #include "StatusGrpcClient.h"
-#include "UserCacheService.h"
+#include "UserInfoCache.h"
 #include "UserMgr.h"
 #include "const.h"
 #include "data.h"
@@ -58,7 +59,7 @@ void LoginHandler::handleLogin(std::shared_ptr<CSession> session, const short &m
     return_value["error"] = ErrorCodes::SUCCESS;
 
     auto user_info = std::make_shared<UserInfo>();
-    bool b_base = UserCacheService::getByUid(uid, user_info);
+    bool b_base = ServiceLocator::getService<UserInfoCache>()->getByUid(uid, user_info);
     if (!b_base)
     {
         return_value["error"] = ErrorCodes::UID_INVALID;

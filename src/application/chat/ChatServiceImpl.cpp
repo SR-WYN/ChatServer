@@ -1,7 +1,8 @@
 #include "ChatServiceImpl.h"
 #include "CSession.h"
 #include "MySqlMgr.h"
-#include "UserCacheService.h"
+#include "ServiceLocator.h"
+#include "UserInfoCache.h"
 #include "UserMgr.h"
 #include "const.h"
 #include "message.pb.h"
@@ -72,7 +73,7 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext *context, const AuthFrien
     return_value["touid"] = touid;
 
     auto user_info = std::make_shared<UserInfo>();
-    bool b_info = UserCacheService::getByUid(fromuid, user_info);
+    bool b_info = ServiceLocator::getService<UserInfoCache>()->getByUid(fromuid, user_info);
     if (b_info)
     {
         return_value["name"] = user_info->name;

@@ -30,6 +30,8 @@ target_include_directories(chatserver_includes INTERFACE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/config
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/cache
+
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/grpc
 
     ${PROTO_GEN_DIR}

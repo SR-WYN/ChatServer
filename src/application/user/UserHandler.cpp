@@ -1,6 +1,7 @@
 #include "UserHandler.h"
 #include "CSession.h"
-#include "UserCacheService.h"
+#include "ServiceLocator.h"
+#include "UserInfoCache.h"
 #include "const.h"
 #include "utils.h"
 #include <json/reader.h>
@@ -28,10 +29,10 @@ void UserHandler::handleSearchUser(std::shared_ptr<CSession> session, const shor
     auto uid_str = root["uid"].asString();
     if (root["uid"].isInt())
     {
-        UserCacheService::fillSearchResultByUid(std::to_string(root["uid"].asInt()), result);
+        ServiceLocator::getService<UserInfoCache>()->fillSearchResultByUid(std::to_string(root["uid"].asInt()), result);
     }
     else
     {
-        UserCacheService::fillSearchResultByName(uid_str, result);
+        ServiceLocator::getService<UserInfoCache>()->fillSearchResultByName(uid_str, result);
     }
 }

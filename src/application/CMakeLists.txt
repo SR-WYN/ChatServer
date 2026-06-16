@@ -6,7 +6,7 @@ add_library(cs_application STATIC
     login/LoginHandler.cpp
     user/UserHandler.cpp
     user/UserDao.cpp
-    user/UserCacheService.cpp
+    user/UserInfoCacheImpl.cpp
     user/UserMgr.cpp
     user/HeartBeatHandler.cpp
     friend/FriendHandler.cpp
