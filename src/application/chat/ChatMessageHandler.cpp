@@ -4,8 +4,10 @@
 #include "MySqlMgr.h"
 #include "PersistWorker.h"
 #include "RuntimeContext.h"
+#include "ServiceLocator.h"
 #include "StatusGrpcClient.h"
 #include "UserMgr.h"
+#include "UserNodeRouteCache.h"
 #include "const.h"
 #include "message.pb.h"
 #include "utils.h"
@@ -44,7 +46,24 @@ bool ChatMessageHandler::deliverTextChat(int from_uid, int to_uid, const Json::V
         return true;
     }
 
-    auto loc = StatusGrpcClient::getInstance().getUserChatNode(to_uid);
+    // 查本地路由缓存
+    auto routeCache = ServiceLocator::getService<UserNodeRouteCache>();
+    auto cached = routeCache ? routeCache->get(to_uid) : std::nullopt;
+
+    std::optional<UserChatLocation> loc;
+    if (cached)
+    {
+        loc = cached;
+    }
+    else
+    {
+        loc = StatusGrpcClient::getInstance().getUserChatNode(to_uid);
+        if (loc && routeCache)
+        {
+            routeCache->put(to_uid, *loc);
+        }
+    }
+
     if (!loc)
     {
         return false;

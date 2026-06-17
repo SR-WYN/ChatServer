@@ -7,6 +7,7 @@
 #include "StatusGrpcClient.h"
 #include "UserInfoCache.h"
 #include "UserMgr.h"
+#include "UserNodeRouteCache.h"
 #include "const.h"
 #include "data.h"
 #include "message.pb.h"
@@ -38,7 +39,17 @@ void FriendHandler::handleAddFriend(std::shared_ptr<CSession> session, const sho
 
     MySqlMgr::getInstance().friends().addFriendApply(uid, touid, alias_name);
 
-    auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(touid);
+    auto routeCache = ServiceLocator::getService<UserNodeRouteCache>();
+    auto peer_loc = routeCache ? routeCache->get(touid) : std::nullopt;
+    if (!peer_loc)
+    {
+        peer_loc = StatusGrpcClient::getInstance().getUserChatNode(touid);
+        if (peer_loc && routeCache)
+        {
+            routeCache->put(touid, *peer_loc);
+        }
+    }
+
     if (!peer_loc)
     {
         return;
@@ -137,7 +148,16 @@ void FriendHandler::handleAuthFriend(std::shared_ptr<CSession> session, const sh
     std::string applicant_peer_alias;
     MySqlMgr::getInstance().friends().getFriendAlias(applicant_uid, accepter_uid,
                                                      applicant_peer_alias);
-    auto peer_loc = StatusGrpcClient::getInstance().getUserChatNode(applicant_uid);
+    auto routeCache = ServiceLocator::getService<UserNodeRouteCache>();
+    auto peer_loc = routeCache ? routeCache->get(applicant_uid) : std::nullopt;
+    if (!peer_loc)
+    {
+        peer_loc = StatusGrpcClient::getInstance().getUserChatNode(applicant_uid);
+        if (peer_loc && routeCache)
+        {
+            routeCache->put(applicant_uid, *peer_loc);
+        }
+    }
     if (!peer_loc)
     {
         return;

@@ -7,8 +7,10 @@
 #include "MsgNode.h"
 #include "RedisMgr.h"
 #include "RuntimeContext.h"
+#include "ServiceLocator.h"
 #include "StatusGrpcClient.h"
 #include "UserMgr.h"
+#include "UserNodeRouteCache.h"
 #include "const.h"
 #include "utils.h"
 #include <boost/asio.hpp>
@@ -263,6 +265,12 @@ void CSession::close()
         const auto &server_name = RuntimeContext::getInstance().getNodeInfo().name;
         StatusGrpcClient::getInstance().unbindUser(_user_uid);
         // LOGIN_COUNT 由 StatusServer 在 unbindUser 中原子维护，ChatServer 不再直接操作
+
+        auto routeCache = ServiceLocator::getService<UserNodeRouteCache>();
+        if (routeCache)
+        {
+            routeCache->invalidate(_user_uid);
+        }
 
         UserMgr::getInstance().removeUserSession(_user_uid);
         LOGI(LogModule::Net, "session closed, uid={}, session={}", _user_uid, _session_id);

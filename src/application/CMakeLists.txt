@@ -16,6 +16,7 @@ add_library(cs_application STATIC
     chat/ChatQueryHandler.cpp
     chat/ChatServiceImpl.cpp
     chat/PersistWorker.cpp
+    route/UserNodeRouteCacheImpl.cpp
 )
 add_dependencies(cs_application chat_proto_gen)
 target_link_libraries(cs_application PUBLIC

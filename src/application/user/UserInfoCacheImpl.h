@@ -26,8 +26,8 @@ private:
     void writeCache(const UserInfo& info);
     void fillUserJson(const UserInfo& info, Json::Value& result);
 
-    // uid -> UserInfo 主缓存（LRU）
-    LRUCache<int, UserInfo> _uid_cache{CACHE_CAPACITY};
+    // uid -> UserInfo 主缓存（LRU，默认容量 10000）
+    LRUCache<int, UserInfo> _uid_cache;
 
     // name -> uid 索引（仅做快速映射，不存储数据）
     std::mutex _name_mutex;

@@ -13,6 +13,8 @@
 #include "StatusGrpcClient.h"
 #include "UserInfoCache.h"
 #include "UserInfoCacheImpl.h"
+#include "UserNodeRouteCache.h"
+#include "route/UserNodeRouteCacheImpl.h"
 #include "const.h"
 #include "utils.h"
 #include <csignal>
@@ -35,6 +37,7 @@ int main()
 
         // ---- 1.5 注册业务服务 ----
         ServiceLocator::registerService<UserInfoCache>(std::make_shared<UserInfoCacheImpl>());
+        ServiceLocator::registerService<UserNodeRouteCache>(std::make_shared<UserNodeRouteCacheImpl>());
 
         // ---- 2. 向 StatusServer 注册当前节点 ----
         // 遍历配置槽位，找到端口可用且注册成功的 slot
