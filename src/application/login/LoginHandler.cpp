@@ -2,7 +2,6 @@
 #include "CSession.h"
 #include "ConfigMgr.h"
 #include "MySqlMgr.h"
-#include "RedisMgr.h"
 #include "RuntimeContext.h"
 #include "ServiceLocator.h"
 #include "StatusGrpcClient.h"

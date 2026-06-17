@@ -7,7 +7,6 @@
 #include "LogicSystem.h"
 #include "NodeHeartbeat.h"
 #include "PersistWorker.h"
-#include "RedisMgr.h"
 #include "RuntimeContext.h"
 #include "ServiceLocator.h"
 #include "StatusGrpcClient.h"
@@ -106,7 +105,6 @@ int main()
         NodeHeartbeat::stop();
         PersistWorker::getInstance().stop();
         StatusGrpcClient::getInstance().unregisterChatNode(self);
-        RedisMgr::getInstance().close();
         grpc_server_thread.join();
         delete g_snowflake;
         g_snowflake = nullptr;

@@ -5,7 +5,6 @@
 #include "Log.h"
 #include "LogicSystem.h"
 #include "MsgNode.h"
-#include "RedisMgr.h"
 #include "RuntimeContext.h"
 #include "ServiceLocator.h"
 #include "StatusGrpcClient.h"

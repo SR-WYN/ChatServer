@@ -56,10 +56,4 @@ constexpr int SESSION_APP_IDLE_SECONDS = 120;
 // 空闲连接扫描周期（秒）
 constexpr int IDLE_SWEEP_INTERVAL_SECONDS = 10;
 
-namespace RedisPrefix
-{
-constexpr const char *CODE = "code_";
-constexpr const char *USERTOKENPREFIX = "utoken_";
-constexpr const char *IPCOUNTPREFIX = "ipcount_";
-constexpr const char *LOGIN_COUNT = "logincount";
-} // namespace RedisPrefix
+

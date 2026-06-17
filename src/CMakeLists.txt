@@ -18,8 +18,6 @@ target_include_directories(chatserver_includes INTERFACE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/application/mysql
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/redis
-
     ${CMAKE_CURRENT_SOURCE_DIR}/application/login
 
     ${CMAKE_CURRENT_SOURCE_DIR}/application/user
@@ -98,13 +96,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
     protobuf::libprotobuf
 
-    redis++
-
-    hiredis
-
     mysqlcppconn
     spdlog::spdlog
-
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
