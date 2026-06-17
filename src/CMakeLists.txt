@@ -51,18 +51,19 @@ add_subdirectory(application)
 add_subdirectory(app)
 
 add_executable(${PROJECT_NAME}
-
     app/ChatServer.cpp
-
     ${PROTO_SRCS}
-
 )
 
+# 固定可执行文件输出到 build 根目录
 set_target_properties(${PROJECT_NAME} PROPERTIES
-
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
 )
+
+# 确保 proto 文件先生成，再编译可执行文件
+add_dependencies(${PROJECT_NAME} chat_proto_gen)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
 
