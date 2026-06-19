@@ -8,7 +8,6 @@
 class ChatGrpcClient;
 class IdGenerator;
 class MySqlMgr;
-class PersistWorker;
 class RuntimeContext;
 class StatusGrpcClient;
 class UserNodeRouteCache;
@@ -23,7 +22,6 @@ public:
                     std::shared_ptr<StatusGrpcClient> status_client,
                     std::shared_ptr<ChatGrpcClient> chat_client,
                     std::shared_ptr<IdGenerator> id_generator,
-                    std::shared_ptr<PersistWorker> persist_worker,
                     const RuntimeContext& runtime_context);
 
     void handleTextChat(std::shared_ptr<CSession> session, const std::string& msg_data) override;
@@ -44,6 +42,5 @@ private:
     std::shared_ptr<StatusGrpcClient> _status_client;
     std::shared_ptr<ChatGrpcClient> _chat_client;
     std::shared_ptr<IdGenerator> _id_generator;
-    std::shared_ptr<PersistWorker> _persist_worker;
     const RuntimeContext& _runtime_context;
 };

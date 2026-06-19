@@ -4,10 +4,12 @@
 #include <algorithm>
 #include <set>
 #include "ChatGrpcClient.h"
+#include "data.h"
 #include "IdGenerator.h"
 #include "MySqlMgr.h"
-#include "PersistWorker.h"
 #include "RuntimeContext.h"
+#include "ThreadPoolMgr.h"
+#include "Log.h"
 #include "StatusGrpcClient.h"
 #include "UserNodeRouteCache.h"
 #include "UserSessionManager.h"
@@ -18,13 +20,18 @@
 #include <json/value.h>
 #include <string>
 
+struct PersistTask
+{
+    ChatMessageRecord message;
+    bool delivered_online = false;
+};
+
 ChatMessageImpl::ChatMessageImpl(std::shared_ptr<UserSessionManager> session_manager,
                                  std::shared_ptr<UserNodeRouteCache> route_cache,
                                  std::shared_ptr<MySqlMgr> mysql_mgr,
                                  std::shared_ptr<StatusGrpcClient> status_client,
                                  std::shared_ptr<ChatGrpcClient> chat_client,
                                  std::shared_ptr<IdGenerator> id_generator,
-                                 std::shared_ptr<PersistWorker> persist_worker,
                                  const RuntimeContext& runtime_context)
     : _session_manager(std::move(session_manager)),
       _route_cache(std::move(route_cache)),
@@ -32,7 +39,6 @@ ChatMessageImpl::ChatMessageImpl(std::shared_ptr<UserSessionManager> session_man
       _status_client(std::move(status_client)),
       _chat_client(std::move(chat_client)),
       _id_generator(std::move(id_generator)),
-      _persist_worker(std::move(persist_worker)),
       _runtime_context(runtime_context)
 {
 }
@@ -111,34 +117,6 @@ bool ChatMessageImpl::deliverTextChat(int from_uid, int to_uid, const Json::Valu
     return rsp.recipient_online();
 }
 
-bool ChatMessageImpl::persistOneMessage(int from_uid, int to_uid, const std::string& msgid,
-                                        const std::string& content, bool delivered_online)
-{
-    if (_mysql_mgr->existsByClientMsgId(from_uid, msgid))
-    {
-        return true;
-    }
-
-    ChatMessageRecord msg;
-    msg.id = _id_generator->nextId();
-    msg.client_msg_id = msgid;
-    msg.from_uid = from_uid;
-    msg.to_uid = to_uid;
-    msg.content = content;
-    if (!_mysql_mgr->saveMessage(msg))
-    {
-        return false;
-    }
-    if (!delivered_online)
-    {
-        if (!_mysql_mgr->enqueueOffline(msg.id, to_uid))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 void ChatMessageImpl::persistOutgoingBatch(int from_uid, int to_uid,
                                            const Json::Value& text_array, bool delivered_online)
 {
@@ -161,20 +139,48 @@ void ChatMessageImpl::persistOutgoingBatch(int from_uid, int to_uid,
             continue;
         }
 
-        if (!delivered_online)
-        {
-            persistOneMessage(from_uid, to_uid, msgid, content, false);
-            continue;
-        }
-
         PersistTask task;
         task.message.id = _id_generator->nextId();
         task.message.client_msg_id = msgid;
         task.message.from_uid = from_uid;
         task.message.to_uid = to_uid;
         task.message.content = content;
-        task.delivered_online = true;
-        _persist_worker->enqueue(std::move(task));
+        task.delivered_online = delivered_online;
+
+        auto mysql_mgr = _mysql_mgr;
+        ThreadPoolMgr::getInstance().enqueuePersist(
+            [mysql_mgr, task = std::move(task)]() mutable {
+                if (mysql_mgr->existsByClientMsgId(task.message.from_uid,
+                                                   task.message.client_msg_id))
+                {
+                    LOGW(LogModule::Chat,
+                         "duplicate message ignored | from_uid={} client_msg_id={}",
+                         task.message.from_uid, task.message.client_msg_id);
+                    return;
+                }
+
+                if (!mysql_mgr->saveMessage(task.message))
+                {
+                    LOGE(LogModule::Chat,
+                         "failed to save message | snowflake_id={} from_uid={} to_uid={} "
+                         "client_msg_id={}",
+                         task.message.id, task.message.from_uid, task.message.to_uid,
+                         task.message.client_msg_id);
+                    return;
+                }
+
+                LOGI(LogModule::Chat,
+                     "message persisted | snowflake_id={} from_uid={} to_uid={} client_msg_id={}",
+                     task.message.id, task.message.from_uid, task.message.to_uid,
+                     task.message.client_msg_id);
+
+                if (!task.delivered_online)
+                {
+                    mysql_mgr->enqueueOffline(task.message.id, task.message.to_uid);
+                    LOGI(LogModule::Chat, "offline message enqueued | snowflake_id={} to_uid={}",
+                         task.message.id, task.message.to_uid);
+                }
+            });
     }
 }
 

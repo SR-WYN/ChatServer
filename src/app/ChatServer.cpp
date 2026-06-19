@@ -21,7 +21,6 @@
 #include "MySqlMgrImpl.h"
 #include "MySqlPool.h"
 #include "NodeHeartbeat.h"
-#include "PersistWorker.h"
 #include "RuntimeContext.h"
 #include "SnowflakeIdGenerator.h"
 #include "StatusGrpcClient.h"
@@ -89,8 +88,6 @@ int main()
         const auto& self = runtime_context.getNodeInfo();
         auto& pool = AsioIOServicePool::getInstance();
 
-        auto persist_worker = std::make_shared<PersistWorker>(mysql_mgr);
-        persist_worker->start();
         NodeHeartbeat::start(status_client);
 
         // ---- 4. 应用层 ----
@@ -102,7 +99,7 @@ int main()
             runtime_context));
         auto chat_message = std::shared_ptr<ChatMessage>(std::make_shared<ChatMessageImpl>(
             session_manager, route_cache, mysql_mgr, status_client, chat_client, id_generator,
-            persist_worker, runtime_context));
+            runtime_context));
         auto heartbeat = std::shared_ptr<Heartbeat>(std::make_shared<HeartbeatImpl>());
 
         // ---- 5. 消息路由器 ----
@@ -178,7 +175,6 @@ int main()
         // ---- 9. 清理资源 ----
         heartbeat->stop();
         NodeHeartbeat::stop();
-        persist_worker->stop();
         status_client->unregisterChatNode(self);
         if (server)
         {
