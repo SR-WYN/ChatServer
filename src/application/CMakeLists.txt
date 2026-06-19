@@ -1,29 +1,36 @@
-add_library(cs_application STATIC
-    LogicSystem.cpp
-    mysql/MySqlPool.cpp
-    mysql/MySqlMgr.cpp
-    login/LoginHandler.cpp
-    user/UserHandler.cpp
-    user/UserDao.cpp
-    user/UserInfoCacheImpl.cpp
-    user/UserMgr.cpp
-    user/HeartBeatHandler.cpp
-    friend/FriendHandler.cpp
-    friend/FriendDao.cpp
-    chat/ChatMessageHandler.cpp
-    chat/ChatMessageDao.cpp
-    chat/ChatQueryHandler.cpp
-    chat/ChatServiceImpl.cpp
-    chat/PersistWorker.cpp
-    route/UserNodeRouteCacheImpl.cpp
+add_library(cs_app STATIC
+    interface/Login.h
+    interface/UserSearch.h
+    interface/Friend.h
+    interface/ChatMessage.h
+    interface/Heartbeat.h
+    interface/LogicSystem.h
+    interface/MySqlMgr.h
+    interface/StatusGrpcClient.h
+    interface/ChatGrpcClient.h
+    interface/UserInfoCache.h
+    interface/UserNodeRouteCache.h
+    interface/UserSessionManager.h
+    impl/LoginImpl.h
+    impl/LoginImpl.cpp
+    impl/UserSearchImpl.h
+    impl/UserSearchImpl.cpp
+    impl/FriendImpl.h
+    impl/FriendImpl.cpp
+    impl/ChatMessageImpl.h
+    impl/ChatMessageImpl.cpp
+    impl/HeartbeatImpl.h
+    impl/HeartbeatImpl.cpp
+    impl/LogicSystemImpl.h
+    impl/LogicSystemImpl.cpp
 )
-add_dependencies(cs_application chat_proto_gen)
-target_link_libraries(cs_application PUBLIC
+
+target_link_libraries(cs_app PUBLIC
     chatserver_includes
-    cs_domain
-    cs_net
-    cs_common
-    cs_config
-    cs_grpc
-    mysqlcppconn
+    cs_base
+    cs_log
+    JsonCpp::JsonCpp
+    Boost::system
 )
+
+add_dependencies(cs_app chat_proto_gen)

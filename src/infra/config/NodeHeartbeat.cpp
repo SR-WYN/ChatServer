@@ -1,3 +1,4 @@
+// NodeHeartbeat.cpp
 #include "NodeHeartbeat.h"
 #include "RuntimeContext.h"
 #include "StatusGrpcClient.h"
@@ -11,14 +12,16 @@ std::atomic<bool> g_running{false};
 std::thread g_worker;
 } // namespace
 
+std::shared_ptr<StatusGrpcClient> NodeHeartbeat::_client;
+
 void NodeHeartbeat::runLoop()
 {
     while (g_running.load())
     {
-        if (RuntimeContext::getInstance().isInitialized())
+        if (_client && RuntimeContext::getInstance().isInitialized())
         {
-            const auto &self = RuntimeContext::getInstance().getNodeInfo();
-            StatusGrpcClient::getInstance().heartbeatChatNode(self.name, self.instance_uid);
+            const auto& self = RuntimeContext::getInstance().getNodeInfo();
+            _client->heartbeatChatNode(self.name, self.instance_uid);
         }
         for (int i = 0; i < 100 && g_running.load(); ++i)
         {
@@ -27,12 +30,13 @@ void NodeHeartbeat::runLoop()
     }
 }
 
-void NodeHeartbeat::start()
+void NodeHeartbeat::start(std::shared_ptr<StatusGrpcClient> client)
 {
     if (g_running.exchange(true))
     {
         return;
     }
+    _client = std::move(client);
     g_worker = std::thread(runLoop);
 }
 
@@ -46,4 +50,5 @@ void NodeHeartbeat::stop()
     {
         g_worker.join();
     }
+    _client.reset();
 }

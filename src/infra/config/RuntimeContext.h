@@ -2,8 +2,11 @@
 
 #include "Singleton.h"
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
+
+class StatusGrpcClient;
 
 // 当前 ChatNode 的运行时身份信息
 struct NodeInfo
@@ -32,7 +35,7 @@ class RuntimeContext : public Singleton<RuntimeContext>
 public:
     // 遍历配置槽位，尝试 bind TCP/RPC 端口并向 StatusServer 注册；
     // 注册失败则尝试下一槽位
-    static std::optional<NodeInfo> tryRegisterNode();
+    static std::optional<NodeInfo> tryRegisterNode(StatusGrpcClient* client);
 
     // 设置当前节点身份信息
     void setNodeInfo(const NodeInfo &node);

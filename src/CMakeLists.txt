@@ -5,49 +5,35 @@ set_source_files_properties(${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 add_library(chatserver_includes INTERFACE)
 
 target_include_directories(chatserver_includes INTERFACE
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/common
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/application/interface
+    ${CMAKE_CURRENT_SOURCE_DIR}/application/impl
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/domain/contract
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/net
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/application
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/mysql
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/login
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/user
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/friend
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/chat
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/base
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/config
-
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/cache
-
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/grpc
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/log
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/mysql
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/net
     ${PROTO_GEN_DIR}
-
 )
 
-add_subdirectory(common)
+target_link_libraries(chatserver_includes INTERFACE
+    JsonCpp::JsonCpp
+    Boost::system
+    Boost::thread
+    Boost::filesystem
+    spdlog::spdlog
+)
 
-add_subdirectory(domain)
-
+add_subdirectory(infra/base)
 add_subdirectory(infra/config)
-
+add_subdirectory(infra/cache)
 add_subdirectory(infra/grpc)
-
-add_subdirectory(net)
-
+add_subdirectory(infra/log)
+add_subdirectory(infra/mysql)
+add_subdirectory(infra/net)
 add_subdirectory(application)
-
 add_subdirectory(app)
 
 add_executable(${PROJECT_NAME}
@@ -68,35 +54,22 @@ add_dependencies(${PROJECT_NAME} chat_proto_gen)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-
     chatserver_includes
-
-    chatserver_app_dir
-
-    cs_net
-
-    cs_application
-
-    cs_common
-
+    cs_app
+    cs_base
+    cs_cache
     cs_config
-
     cs_grpc
-
+    cs_log
+    cs_mysql
+    cs_net
     Boost::system
-
     Boost::thread
-
     Boost::filesystem
-
     JsonCpp::JsonCpp
-
     gRPC::grpc++
-
     gRPC::grpc++_reflection
-
     protobuf::libprotobuf
-
     mysqlcppconn
     spdlog::spdlog
 )

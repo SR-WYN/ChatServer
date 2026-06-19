@@ -1,3 +1,2 @@
-# 入口在 app/ChatServer.cpp，由上层 add_executable 加入
-add_library(chatserver_app_dir INTERFACE)
-target_link_libraries(chatserver_app_dir INTERFACE chatserver_includes)
+# app/ChatServer.cpp 已在根 CMakeLists 中显式列出，这里保留空文件或仅做说明
+# 实际可执行文件目标在 src/CMakeLists.txt 中定义

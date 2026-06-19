@@ -6,12 +6,12 @@
 #include <sstream>
 
 // 遍历配置槽位，bind 端口后向 StatusServer 注册，注册失败则尝试下一槽位
-std::optional<NodeInfo> RuntimeContext::tryRegisterNode()
+std::optional<NodeInfo> RuntimeContext::tryRegisterNode(StatusGrpcClient* client)
 {
     Log::info(LogModule::Config, "tryRegisterNode: start");
-    auto ret = forEachSlot([](const NodeInfo &info) {
+    auto ret = forEachSlot([client](const NodeInfo &info) {
         Log::info(LogModule::Config, "tryRegisterNode: trying slot={}", info.slot_key);
-        bool ok = StatusGrpcClient::getInstance().registerChatNode(info);
+        bool ok = client && client->registerChatNode(info);
         if (ok)
         {
             Log::info(LogModule::Config, "tryRegisterNode: slot={} registered", info.slot_key);

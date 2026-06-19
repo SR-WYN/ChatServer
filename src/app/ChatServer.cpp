@@ -1,46 +1,73 @@
+// ChatServer.cpp - 组合根
 #include "AsioIOServicePool.h"
 #include "CServer.h"
-#include "ChatServiceImpl.h"
+#include "ChatGrpcClient.h"
+#include "ChatGrpcClientImpl.h"
+#include "ChatGrpcServiceImpl.h"
+#include "ChatMessage.h"
+#include "ChatMessageImpl.h"
 #include "ConfigMgr.h"
-#include "HeartBeatHandler.h"
+#include "Friend.h"
+#include "FriendImpl.h"
+#include "Heartbeat.h"
+#include "HeartbeatImpl.h"
+#include "IdGenerator.h"
 #include "Log.h"
+#include "Login.h"
+#include "LoginImpl.h"
 #include "LogicSystem.h"
+#include "LogicSystemImpl.h"
+#include "MySqlMgr.h"
+#include "MySqlMgrImpl.h"
+#include "MySqlPool.h"
 #include "NodeHeartbeat.h"
 #include "PersistWorker.h"
 #include "RuntimeContext.h"
-#include "ServiceLocator.h"
+#include "SnowflakeIdGenerator.h"
 #include "StatusGrpcClient.h"
+#include "StatusGrpcClientImpl.h"
+#include "StatusConPool.h"
+#include "ChatConPool.h"
+#include "ThreadPoolMgr.h"
 #include "UserInfoCache.h"
 #include "UserInfoCacheImpl.h"
 #include "UserNodeRouteCache.h"
-#include "route/UserNodeRouteCacheImpl.h"
+#include "UserNodeRouteCacheImpl.h"
+#include "UserSearch.h"
+#include "UserSearchImpl.h"
+#include "UserSessionManager.h"
+#include "UserSessionManagerImpl.h"
 #include "const.h"
 #include "utils.h"
-#include <csignal>
 #include <grpcpp/grpcpp.h>
+#include <csignal>
 #include <iostream>
-#include <mutex>
+#include <memory>
 #include <thread>
 
 int main()
 {
     try
     {
-        // ---- 1. 初始化基础设施 ----
         ConfigMgr::getInstance();
-        // if (!Log::init("ChatServer", ConfigMgr::getInstance().getLogConfig()))
-        // {
-        //     return 1;
-        // }
         LOGI(LogModule::App, "ChatServer starting");
 
-        // ---- 1.5 注册业务服务 ----
-        ServiceLocator::registerService<UserInfoCache>(std::make_shared<UserInfoCacheImpl>());
-        ServiceLocator::registerService<UserNodeRouteCache>(std::make_shared<UserNodeRouteCacheImpl>());
+        // ---- 1. 基础设施 ----
+        MySqlPool::initOnce();
+        auto mysql_pool = MySqlPool::getInstancePtr();
+        auto mysql_mgr = std::shared_ptr<MySqlMgr>(std::make_shared<MySqlMgrImpl>(mysql_pool));
 
-        // ---- 2. 向 StatusServer 注册当前节点 ----
-        // 遍历配置槽位，找到端口可用且注册成功的 slot
-        auto slot = RuntimeContext::tryRegisterNode();
+        auto status_client = std::shared_ptr<StatusGrpcClient>(std::make_shared<StatusGrpcClientImpl>());
+        auto chat_client = std::shared_ptr<ChatGrpcClient>(std::make_shared<ChatGrpcClientImpl>());
+
+        auto session_manager = std::shared_ptr<UserSessionManager>(std::make_shared<UserSessionManagerImpl>());
+        auto user_info_cache = std::shared_ptr<UserInfoCache>(std::make_shared<UserInfoCacheImpl>(mysql_mgr));
+        auto route_cache = std::shared_ptr<UserNodeRouteCache>(std::make_shared<UserNodeRouteCacheImpl>());
+
+        const auto& runtime_context = RuntimeContext::getInstance();
+
+        // ---- 2. 注册当前节点 ----
+        auto slot = RuntimeContext::tryRegisterNode(status_client.get());
         if (!slot)
         {
             LOGE(LogModule::App, "failed to acquire chat node slot");
@@ -49,28 +76,74 @@ int main()
         }
         RuntimeContext::getInstance().setNodeInfo(*slot);
 
-        // ---- 2.5 初始化全局雪花 ID 生成器 ----
-        // 从 slot_key 解析节点 ID（slot0 → 0, slot1 → 1, ...）
+        uint64_t node_id = 0;
+        const std::string& slot_key = slot->slot_key;
+        if (slot_key.size() > 4)
         {
-            uint64_t node_id = 0;
-            const std::string &slot_key = slot->slot_key;
-            // 去掉 "slot" 前缀，取数字部分
-            if (slot_key.size() > 4)
-            {
-                node_id = static_cast<uint64_t>(std::stoul(slot_key.substr(4)));
-            }
-            g_snowflake = new utils::SnowflakeId(node_id);
-            LOGI(LogModule::App, "SnowflakeId initialized | node_id={} slot_key={}", node_id,
-                 slot_key);
+            node_id = static_cast<uint64_t>(std::stoul(slot_key.substr(4)));
         }
+        auto id_generator = std::shared_ptr<IdGenerator>(std::make_shared<SnowflakeIdGenerator>(node_id));
+        LOGI(LogModule::App, "SnowflakeId initialized | node_id={} slot_key={}", node_id, slot_key);
 
-        // ---- 3. 初始化工作线程 ----
-        const auto &self = RuntimeContext::getInstance().getNodeInfo();
-        auto &pool = AsioIOServicePool::getInstance();
-        PersistWorker::getInstance().start();
-        NodeHeartbeat::start();
+        // ---- 3. 启动工作线程 ----
+        const auto& self = runtime_context.getNodeInfo();
+        auto& pool = AsioIOServicePool::getInstance();
 
-        // ---- 4. 注册信号处理（优雅退出） ----
+        auto persist_worker = std::make_shared<PersistWorker>(mysql_mgr);
+        persist_worker->start();
+        NodeHeartbeat::start(status_client);
+
+        // ---- 4. 应用层 ----
+        auto login = std::shared_ptr<Login>(std::make_shared<LoginImpl>(
+            status_client, user_info_cache, mysql_mgr, session_manager, runtime_context));
+        auto user_search = std::shared_ptr<UserSearch>(std::make_shared<UserSearchImpl>(user_info_cache));
+        auto friend_business = std::shared_ptr<Friend>(std::make_shared<FriendImpl>(
+            status_client, chat_client, session_manager, route_cache, mysql_mgr, user_info_cache,
+            runtime_context));
+        auto chat_message = std::shared_ptr<ChatMessage>(std::make_shared<ChatMessageImpl>(
+            session_manager, route_cache, mysql_mgr, status_client, chat_client, id_generator,
+            persist_worker, runtime_context));
+        auto heartbeat = std::shared_ptr<Heartbeat>(std::make_shared<HeartbeatImpl>());
+
+        // ---- 5. 消息路由器 ----
+        auto logic_system = std::shared_ptr<LogicSystem>(std::make_shared<LogicSystemImpl>(ThreadPoolMgr::getInstance()));
+        logic_system->registerHandler(MSG_CHAT_LOGIN,
+                                      [login](std::shared_ptr<CSession> session,
+                                              const std::string& msg_data) {
+                                          login->handle(session, msg_data);
+                                      });
+        logic_system->registerHandler(MSG_SEARCH_USER_REQ,
+                                      [user_search](std::shared_ptr<CSession> session,
+                                                    const std::string& msg_data) {
+                                          user_search->handle(session, msg_data);
+                                      });
+        logic_system->registerHandler(MSG_ADD_FRIEND_REQ,
+                                      [friend_business](std::shared_ptr<CSession> session,
+                                                        const std::string& msg_data) {
+                                          friend_business->handleAddFriend(session, msg_data);
+                                      });
+        logic_system->registerHandler(MSG_AUTH_FRIEND_REQ,
+                                      [friend_business](std::shared_ptr<CSession> session,
+                                                        const std::string& msg_data) {
+                                          friend_business->handleAuthFriend(session, msg_data);
+                                      });
+        logic_system->registerHandler(MSG_TEXT_CHAT_MSG_REQ,
+                                      [chat_message](std::shared_ptr<CSession> session,
+                                                     const std::string& msg_data) {
+                                          chat_message->handleTextChat(session, msg_data);
+                                      });
+        logic_system->registerHandler(MSG_CHAT_HISTORY_REQ,
+                                      [chat_message](std::shared_ptr<CSession> session,
+                                                     const std::string& msg_data) {
+                                          chat_message->handleHistory(session, msg_data);
+                                      });
+        logic_system->registerHandler(MSG_HEARTBEAT_PING,
+                                      [heartbeat](std::shared_ptr<CSession> session,
+                                                  const std::string& msg_data) {
+                                          heartbeat->handlePing(session, msg_data);
+                                      });
+
+        // ---- 6. 注册信号处理 ----
         boost::asio::io_context io_context;
         boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
         signals.async_wait([&io_context, &pool](auto, auto) {
@@ -78,50 +151,52 @@ int main()
             pool.stop();
         });
 
-        // ---- 5. 启动 gRPC 服务（供其他后端服务调用） ----
+        // ---- 7. 启动 gRPC 服务 ----
         const std::string server_address = self.rpc_host + ":" + self.rpc_port;
-        ChatServiceImpl service;
+        ChatGrpcServiceImpl grpc_service(session_manager, user_info_cache, mysql_mgr);
         grpc::ServerBuilder builder;
         builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-        builder.RegisterService(&service);
+        builder.RegisterService(&grpc_service);
         std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
         if (!server)
         {
             NodeHeartbeat::stop();
-            StatusGrpcClient::getInstance().unregisterChatNode(self);
+            status_client->unregisterChatNode(self);
             return 1;
         }
         std::thread grpc_server_thread([&server]() {
             server->Wait();
         });
 
-        // ---- 6. 启动 TCP 服务（供客户端连接） ----
-        CServer tcp_server(io_context, std::stoi(self.tcp_port));
-        HeartBeatHandler::start(tcp_server);
+        // ---- 8. 启动 TCP 服务 ----
+        auto tcp_server = std::make_shared<CServer>(io_context, std::stoi(self.tcp_port),
+                                                    logic_system, status_client, route_cache,
+                                                    session_manager);
+        heartbeat->start(*tcp_server);
         io_context.run();
-        HeartBeatHandler::stop();
 
-        // ---- 7. 清理资源 ----
+        // ---- 9. 清理资源 ----
+        heartbeat->stop();
         NodeHeartbeat::stop();
-        PersistWorker::getInstance().stop();
-        StatusGrpcClient::getInstance().unregisterChatNode(self);
+        persist_worker->stop();
+        status_client->unregisterChatNode(self);
+        if (server)
+        {
+            server->Shutdown();
+        }
         grpc_server_thread.join();
-        delete g_snowflake;
-        g_snowflake = nullptr;
         LOGI(LogModule::App, "ChatServer stopped");
         Log::shutdown();
     }
-    catch (std::exception &e)
+    catch (std::exception& e)
     {
         LOGE(LogModule::App, "ChatServer exception: {}", e.what());
         if (RuntimeContext::getInstance().isInitialized())
         {
             NodeHeartbeat::stop();
-            StatusGrpcClient::getInstance().unregisterChatNode(
-                RuntimeContext::getInstance().getNodeInfo());
+            auto fallback_status = std::make_shared<StatusGrpcClientImpl>();
+            fallback_status->unregisterChatNode(RuntimeContext::getInstance().getNodeInfo());
         }
-        delete g_snowflake;
-        g_snowflake = nullptr;
         Log::shutdown();
         return 1;
     }
