@@ -1,6 +1,4 @@
 add_library(cs_net STATIC
-    AsioIOServicePool.h
-    AsioIOServicePool.cpp
     CServer.h
     CServer.cpp
     CSession.h

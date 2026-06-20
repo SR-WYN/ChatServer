@@ -1,3 +1,5 @@
+#pragma once
+
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -9,7 +11,7 @@
 class ThreadPool
 {
 public:
-    explicit ThreadPool(std::size_t core_num);
+    explicit ThreadPool(std::size_t core_num = std::thread::hardware_concurrency());
 
     void enqueue(std::function<void()> task);
 

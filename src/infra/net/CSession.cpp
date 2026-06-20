@@ -1,6 +1,5 @@
 // CSession.cpp
 #include "CSession.h"
-#include "AsioIOServicePool.h"
 #include "CServer.h"
 #include "ConfigMgr.h"
 #include "Log.h"

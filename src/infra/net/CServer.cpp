@@ -1,8 +1,8 @@
 // CServer.cpp
 #include "CServer.h"
-#include "AsioIOServicePool.h"
 #include "CSession.h"
 #include "Log.h"
+#include "ThreadPoolMgr.h"
 
 CServer::CServer(boost::asio::io_context& io_context, short port,
                  std::shared_ptr<LogicSystem> logic_system,
@@ -18,8 +18,7 @@ CServer::CServer(boost::asio::io_context& io_context, short port,
       _route_cache(std::move(route_cache)),
       _session_manager(std::move(session_manager))
 {
-    LOGI(LogModule::Net, "TCP server listening on port {}", _port);
-    StartAccept();
+    LOGI(LogModule::Net, "TCP server constructed on port {}", _port);
 }
 
 CServer::~CServer()
@@ -58,12 +57,13 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session,
     {
         LOGW(LogModule::Net, "accept failed: {}", error.message());
     }
-    StartAccept();
+    start();
 }
 
-void CServer::StartAccept()
+void CServer::start()
 {
-    auto& io_context = AsioIOServicePool::getInstance().getIOService();
+    LOGI(LogModule::Net, "TCP server starts accepting on port {}", _port);
+    auto& io_context = ThreadPoolMgr::getInstance().getIoService();
     std::shared_ptr<CSession> new_session =
         std::make_shared<CSession>(io_context, shared_from_this(), _logic_system, _status_client,
                                    _route_cache, _session_manager);

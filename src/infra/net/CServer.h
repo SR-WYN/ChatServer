@@ -23,13 +23,13 @@ public:
             std::shared_ptr<UserSessionManager> session_manager);
     ~CServer();
 
+    void start();
     void ClearSession(std::string uuid);
     boost::asio::io_context& ioContext();
     void snapshotSessions(std::vector<std::shared_ptr<CSession>>& out);
 
 private:
     void HandleAccept(std::shared_ptr<CSession> session, const boost::system::error_code& error);
-    void StartAccept();
 
     boost::asio::io_context& _io_context;
     short _port;

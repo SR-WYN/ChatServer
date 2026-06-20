@@ -1,6 +1,6 @@
 #include "ThreadPool.h"
 
-ThreadPool::ThreadPool(std::size_t core_num = std::thread::hardware_concurrency()) : _stop(false)
+ThreadPool::ThreadPool(std::size_t core_num) : _stop(false)
 {
     for (size_t i = 0; i < core_num; ++i)
     {

@@ -148,7 +148,7 @@ void ChatMessageImpl::persistOutgoingBatch(int from_uid, int to_uid,
         task.delivered_online = delivered_online;
 
         auto mysql_mgr = _mysql_mgr;
-        ThreadPoolMgr::getInstance().enqueuePersist(
+        ThreadPoolMgr::getInstance().enqueueMySql(
             [mysql_mgr, task = std::move(task)]() mutable {
                 if (mysql_mgr->existsByClientMsgId(task.message.from_uid,
                                                    task.message.client_msg_id))
