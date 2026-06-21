@@ -3,22 +3,22 @@
     "Dir": "/home/asus/NETLEARN/ChatServer/src/logdir",
     "Level": "info"
   },
-  "ChatNodePool": {
+  "NodePool": {
     "Slots": "slot0,slot1,slot2"
   },
-  "ChatNode_slot0": {
+  "Node_slot0": {
     "TcpPort": "8090",
     "RpcPort": "50055",
     "ClientAdvertiseHost": "127.0.0.1",
     "RpcAdvertiseHost": "127.0.0.1"
   },
-  "ChatNode_slot1": {
+  "Node_slot1": {
     "TcpPort": "8091",
     "RpcPort": "50056",
     "ClientAdvertiseHost": "127.0.0.1",
     "RpcAdvertiseHost": "127.0.0.1"
   },
-  "ChatNode_slot2": {
+  "Node_slot2": {
     "TcpPort": "8092",
     "RpcPort": "50057",
     "ClientAdvertiseHost": "127.0.0.1",

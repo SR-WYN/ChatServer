@@ -8,7 +8,7 @@
 
 struct RouteEntry
 {
-    UserChatLocation location;
+    UserNodeLocation location;
     std::chrono::steady_clock::time_point expire_time;
 };
 
@@ -19,8 +19,8 @@ public:
     UserNodeRouteCacheImpl() = default;
     ~UserNodeRouteCacheImpl() override = default;
 
-    std::optional<UserChatLocation> get(int uid) override;
-    void put(int uid, const UserChatLocation& loc, int ttl_seconds = DEFAULT_TTL) override;
+    std::optional<UserNodeLocation> get(int uid) override;
+    void put(int uid, const UserNodeLocation& loc, int ttl_seconds = DEFAULT_TTL) override;
     void invalidate(int uid) override;
 
 private:

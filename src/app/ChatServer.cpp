@@ -101,7 +101,7 @@ int main()
             while (client && RuntimeContext::getInstance().isInitialized())
             {
                 const auto &nodeInfo = RuntimeContext::getInstance().getNodeInfo();
-                client->heartbeatChatNode(nodeInfo.name, nodeInfo.instance_uid);
+                client->heartbeatNode(nodeInfo.name, nodeInfo.instance_uid);
                 for (int i = 0; i < 100; ++i)
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -177,7 +177,7 @@ int main()
         if (!server)
         {
             ThreadPoolMgr::getInstance().joinNodeHeartbeat();
-            status_client->unregisterChatNode(self);
+            status_client->unregisterNode(self);
             return 1;
         }
 
@@ -197,7 +197,7 @@ int main()
         // ---- 9. 清理资源 ----
         heartbeat->stop();
         ThreadPoolMgr::getInstance().joinNodeHeartbeat();
-        status_client->unregisterChatNode(self);
+        status_client->unregisterNode(self);
         if (server)
         {
             server->Shutdown();
@@ -216,7 +216,7 @@ int main()
         {
             ThreadPoolMgr::getInstance().joinNodeHeartbeat();
             auto fallback_status = std::make_shared<StatusGrpcClientImpl>();
-            fallback_status->unregisterChatNode(RuntimeContext::getInstance().getNodeInfo());
+            fallback_status->unregisterNode(RuntimeContext::getInstance().getNodeInfo());
         }
         Log::shutdown();
         return 1;

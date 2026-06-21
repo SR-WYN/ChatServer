@@ -11,7 +11,7 @@ std::optional<NodeInfo> RuntimeContext::tryRegisterNode(StatusGrpcClient* client
     Log::info(LogModule::Config, "tryRegisterNode: start");
     auto ret = forEachSlot([client](const NodeInfo &info) {
         Log::info(LogModule::Config, "tryRegisterNode: trying slot={}", info.slot_key);
-        bool ok = client && client->registerChatNode(info);
+        bool ok = client && client->registerNode(info);
         if (ok)
         {
             Log::info(LogModule::Config, "tryRegisterNode: slot={} registered", info.slot_key);
@@ -38,10 +38,10 @@ std::optional<NodeInfo>
 RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
 {
     auto &cfg = ConfigMgr::getInstance();
-    const std::string slots_csv = cfg["ChatNodePool"]["Slots"];
+    const std::string slots_csv = cfg["NodePool"]["Slots"];
     if (slots_csv.empty())
     {
-        Log::warn(LogModule::Config, "forEachSlot: ChatNodePool.Slots is empty");
+        Log::warn(LogModule::Config, "forEachSlot: NodePool.Slots is empty");
         return std::nullopt;
     }
 
@@ -58,11 +58,11 @@ RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
             continue;
         }
 
-        // 从 config.json 的 ChatNode_{slot_key} 节中读取节点配置
+        // 从 config.json 的 Node_{slot_key} 节中读取节点配置
         std::string tcp_port, rpc_port, client_host, rpc_host;
         bool found = false;
 
-        std::string node_section = "ChatNode_" + slot_key;
+        std::string node_section = "Node_" + slot_key;
         auto section = cfg[node_section];
         tcp_port = section["TcpPort"];
         rpc_port = section["RpcPort"];
@@ -77,7 +77,7 @@ RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
         if (!found)
         {
             Log::warn(LogModule::Config,
-                      "forEachSlot: slot={} config not found in ChatNodePool.Nodes", slot_key);
+                      "forEachSlot: slot={} config not found in NodePool.Nodes", slot_key);
             continue;
         }
 
@@ -97,7 +97,7 @@ RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
 
         NodeInfo info;
         info.slot_key = slot_key;
-        info.name = "ChatNode-" + slot_key;
+        info.name = "Node-" + slot_key;
         info.instance_uid = instance_uid;
         info.tcp_port = tcp_port;
         info.rpc_port = rpc_port;

@@ -21,7 +21,7 @@ void NodeHeartbeat::runLoop()
         if (_client && RuntimeContext::getInstance().isInitialized())
         {
             const auto& self = RuntimeContext::getInstance().getNodeInfo();
-            _client->heartbeatChatNode(self.name, self.instance_uid);
+            _client->heartbeatNode(self.name, self.instance_uid);
         }
         for (int i = 0; i < 100 && g_running.load(); ++i)
         {

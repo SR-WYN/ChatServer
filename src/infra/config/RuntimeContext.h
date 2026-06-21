@@ -8,7 +8,7 @@
 
 class StatusGrpcClient;
 
-// 当前 ChatNode 的运行时身份信息
+// 当前 Node 的运行时身份信息
 struct NodeInfo
 {
     std::string slot_key;     // 配置槽位标识

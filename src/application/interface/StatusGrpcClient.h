@@ -5,7 +5,7 @@
 #include <optional>
 #include <string>
 
-struct UserChatLocation
+struct UserNodeLocation
 {
     std::string node_name;
     std::string rpc_host;
@@ -17,10 +17,10 @@ class StatusGrpcClient
 public:
     virtual ~StatusGrpcClient() = default;
 
-    virtual bool registerChatNode(const NodeInfo& node) = 0;
-    virtual bool unregisterChatNode(const NodeInfo& node) = 0;
-    virtual bool heartbeatChatNode(const std::string& name, const std::string& instance_id) = 0;
-    virtual std::optional<UserChatLocation> getUserChatNode(int uid) = 0;
+    virtual bool registerNode(const NodeInfo& node) = 0;
+    virtual bool unregisterNode(const NodeInfo& node) = 0;
+    virtual bool heartbeatNode(const std::string& name, const std::string& instance_id) = 0;
+    virtual std::optional<UserNodeLocation> getUserNode(int uid) = 0;
 virtual bool bindUserToNode(int uid, const std::string& node_name) = 0;
     virtual bool unbindUser(int uid) = 0;
 

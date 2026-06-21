@@ -9,16 +9,16 @@
 
 using message::BindUserToNodeReq;
 using message::BindUserToNodeRsp;
-using message::GetUserChatNodeReq;
-using message::GetUserChatNodeRsp;
-using message::HeartbeatChatNodeReq;
-using message::HeartbeatChatNodeRsp;
-using message::RegisterChatNodeReq;
-using message::RegisterChatNodeRsp;
+using message::GetUserNodeReq;
+using message::GetUserNodeRsp;
+using message::HeartbeatNodeReq;
+using message::HeartbeatNodeRsp;
+using message::RegisterNodeReq;
+using message::RegisterNodeRsp;
 using message::UnbindUserReq;
 using message::UnbindUserRsp;
-using message::UnregisterChatNodeReq;
-using message::UnregisterChatNodeRsp;
+using message::UnregisterNodeReq;
+using message::UnregisterNodeRsp;
 using message::ValidateTokenReq;
 using message::ValidateTokenRsp;
 
@@ -35,11 +35,11 @@ StatusGrpcClientImpl::StatusGrpcClientImpl()
 
 StatusGrpcClientImpl::~StatusGrpcClientImpl() = default;
 
-bool StatusGrpcClientImpl::registerChatNode(const NodeInfo& node)
+bool StatusGrpcClientImpl::registerNode(const NodeInfo& node)
 {
     ClientContext context;
-    RegisterChatNodeReq request;
-    RegisterChatNodeRsp reply;
+    RegisterNodeReq request;
+    RegisterNodeRsp reply;
     request.set_name(node.name);
     request.set_client_host(node.client_advertise_host);
     request.set_client_port(node.client_advertise_port);
@@ -51,18 +51,18 @@ bool StatusGrpcClientImpl::registerChatNode(const NodeInfo& node)
     {
         return false;
     }
-    Status status = stub->RegisterChatNode(&context, request, &reply);
+    Status status = stub->RegisterNode(&context, request, &reply);
     utils::Defer defer([&stub, this]() {
         _pool->returnConnection(std::move(stub));
     });
     return status.ok() && reply.error() == ErrorCodes::SUCCESS;
 }
 
-bool StatusGrpcClientImpl::unregisterChatNode(const NodeInfo& node)
+bool StatusGrpcClientImpl::unregisterNode(const NodeInfo& node)
 {
     ClientContext context;
-    UnregisterChatNodeReq request;
-    UnregisterChatNodeRsp reply;
+    UnregisterNodeReq request;
+    UnregisterNodeRsp reply;
     request.set_name(node.name);
     request.set_instance_id(node.instance_uid);
     auto stub = _pool->getConnection();
@@ -70,19 +70,19 @@ bool StatusGrpcClientImpl::unregisterChatNode(const NodeInfo& node)
     {
         return false;
     }
-    Status status = stub->UnregisterChatNode(&context, request, &reply);
+    Status status = stub->UnregisterNode(&context, request, &reply);
     utils::Defer defer([&stub, this]() {
         _pool->returnConnection(std::move(stub));
     });
     return status.ok() && reply.error() == ErrorCodes::SUCCESS;
 }
 
-bool StatusGrpcClientImpl::heartbeatChatNode(const std::string& name,
+bool StatusGrpcClientImpl::heartbeatNode(const std::string& name,
                                              const std::string& instance_id)
 {
     ClientContext context;
-    HeartbeatChatNodeReq request;
-    HeartbeatChatNodeRsp reply;
+    HeartbeatNodeReq request;
+    HeartbeatNodeRsp reply;
     request.set_name(name);
     request.set_instance_id(instance_id);
     auto stub = _pool->getConnection();
@@ -90,25 +90,25 @@ bool StatusGrpcClientImpl::heartbeatChatNode(const std::string& name,
     {
         return false;
     }
-    Status status = stub->HeartbeatChatNode(&context, request, &reply);
+    Status status = stub->HeartbeatNode(&context, request, &reply);
     utils::Defer defer([&stub, this]() {
         _pool->returnConnection(std::move(stub));
     });
     return status.ok() && reply.error() == ErrorCodes::SUCCESS;
 }
 
-std::optional<UserChatLocation> StatusGrpcClientImpl::getUserChatNode(int uid)
+std::optional<UserNodeLocation> StatusGrpcClientImpl::getUserNode(int uid)
 {
     ClientContext context;
-    GetUserChatNodeReq request;
-    GetUserChatNodeRsp reply;
+    GetUserNodeReq request;
+    GetUserNodeRsp reply;
     request.set_uid(uid);
     auto stub = _pool->getConnection();
     if (!stub)
     {
         return std::nullopt;
     }
-    Status status = stub->GetUserChatNode(&context, request, &reply);
+    Status status = stub->GetUserNode(&context, request, &reply);
     utils::Defer defer([&stub, this]() {
         _pool->returnConnection(std::move(stub));
     });
@@ -116,7 +116,7 @@ std::optional<UserChatLocation> StatusGrpcClientImpl::getUserChatNode(int uid)
     {
         return std::nullopt;
     }
-    UserChatLocation loc;
+    UserNodeLocation loc;
     loc.node_name = reply.node_name();
     loc.rpc_host = reply.rpc_host();
     loc.rpc_port = reply.rpc_port();

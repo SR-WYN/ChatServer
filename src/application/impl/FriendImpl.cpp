@@ -57,7 +57,7 @@ void FriendImpl::handleAddFriend(std::shared_ptr<CSession> session, const std::s
     auto peer_loc = _route_cache->get(touid);
     if (!peer_loc)
     {
-        peer_loc = _status_client->getUserChatNode(touid);
+        peer_loc = _status_client->getUserNode(touid);
         if (peer_loc)
         {
             _route_cache->put(touid, *peer_loc);
@@ -160,7 +160,7 @@ void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::
     auto peer_loc = _route_cache->get(applicant_uid);
     if (!peer_loc)
     {
-        peer_loc = _status_client->getUserChatNode(applicant_uid);
+        peer_loc = _status_client->getUserNode(applicant_uid);
         if (peer_loc)
         {
             _route_cache->put(applicant_uid, *peer_loc);

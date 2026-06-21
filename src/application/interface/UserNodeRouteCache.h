@@ -9,7 +9,7 @@ class UserNodeRouteCache
 public:
     virtual ~UserNodeRouteCache() = default;
 
-    virtual std::optional<UserChatLocation> get(int uid) = 0;
-    virtual void put(int uid, const UserChatLocation& loc, int ttl_seconds = 60) = 0;
+    virtual std::optional<UserNodeLocation> get(int uid) = 0;
+    virtual void put(int uid, const UserNodeLocation& loc, int ttl_seconds = 60) = 0;
     virtual void invalidate(int uid) = 0;
 };

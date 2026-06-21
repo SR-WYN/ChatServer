@@ -12,10 +12,10 @@ public:
     StatusGrpcClientImpl();
     ~StatusGrpcClientImpl() override;
 
-    bool registerChatNode(const NodeInfo& node) override;
-    bool unregisterChatNode(const NodeInfo& node) override;
-    bool heartbeatChatNode(const std::string& name, const std::string& instance_id) override;
-    std::optional<UserChatLocation> getUserChatNode(int uid) override;
+    bool registerNode(const NodeInfo& node) override;
+    bool unregisterNode(const NodeInfo& node) override;
+    bool heartbeatNode(const std::string& name, const std::string& instance_id) override;
+    std::optional<UserNodeLocation> getUserNode(int uid) override;
     bool bindUserToNode(int uid, const std::string& node_name) override;
     bool unbindUser(int uid) override;
     int validateToken(int uid, const std::string& token) override;

@@ -69,14 +69,14 @@ bool ChatMessageImpl::deliverTextChat(int from_uid, int to_uid, const Json::Valu
     }
 
     auto cached = _route_cache->get(to_uid);
-    std::optional<UserChatLocation> loc;
+    std::optional<UserNodeLocation> loc;
     if (cached)
     {
         loc = cached;
     }
     else
     {
-        loc = _status_client->getUserChatNode(to_uid);
+        loc = _status_client->getUserNode(to_uid);
         if (loc)
         {
             _route_cache->put(to_uid, *loc);

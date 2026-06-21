@@ -1,6 +1,6 @@
 #include "UserNodeRouteCacheImpl.h"
 
-std::optional<UserChatLocation> UserNodeRouteCacheImpl::get(int uid)
+std::optional<UserNodeLocation> UserNodeRouteCacheImpl::get(int uid)
 {
     auto opt = _cache.get(uid);
     if (!opt)
@@ -15,7 +15,7 @@ std::optional<UserChatLocation> UserNodeRouteCacheImpl::get(int uid)
     return opt->location;
 }
 
-void UserNodeRouteCacheImpl::put(int uid, const UserChatLocation& loc, int ttl_seconds)
+void UserNodeRouteCacheImpl::put(int uid, const UserNodeLocation& loc, int ttl_seconds)
 {
     RouteEntry entry;
     entry.location = loc;
