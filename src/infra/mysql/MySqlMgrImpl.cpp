@@ -36,6 +36,7 @@ ChatMessageRecord readChatMsg(sql::ResultSet& rs)
     msg.from_uid = rs.getInt("from_uid");
     msg.to_uid = rs.getInt("to_uid");
     msg.content = rs.getString("content");
+    msg.msg_type = rs.getInt("msg_type");
     return msg;
 }
 } // namespace
@@ -211,13 +212,14 @@ bool MySqlMgrImpl::saveMessage(const ChatMessageRecord& msg)
         try
         {
             auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(
-                "INSERT INTO chat_message (id, client_msg_id, from_uid, to_uid, content) "
-                "VALUES (?,?,?,?,?)"));
+                "INSERT INTO chat_message (id, client_msg_id, from_uid, to_uid, content, msg_type) "
+                "VALUES (?,?,?,?,?,?)"));
             stmt->setUInt64(1, msg.id);
             stmt->setString(2, msg.client_msg_id);
             stmt->setInt(3, msg.from_uid);
             stmt->setInt(4, msg.to_uid);
             stmt->setString(5, msg.content);
+            stmt->setInt(6, msg.msg_type);
             stmt->executeUpdate();
             return true;
         }
@@ -267,7 +269,8 @@ bool MySqlMgrImpl::fetchOfflineBatch(int owner_uid, int limit, std::vector<ChatM
     };
     std::vector<OfflineRow> rows;
     if (!DbSession::queryAll(
-            "SELECT inbox.id AS inbox_id, m.id, m.client_msg_id, m.from_uid, m.to_uid, m.content "
+            "SELECT inbox.id AS inbox_id, m.id, m.client_msg_id, m.from_uid, m.to_uid, m.content, "
+            "m.msg_type "
             "FROM chat_offline_inbox AS inbox "
             "JOIN chat_message AS m ON inbox.message_id = m.id "
             "WHERE inbox.owner_uid = ? ORDER BY inbox.id ASC LIMIT ?",
@@ -306,7 +309,7 @@ bool MySqlMgrImpl::queryHistory(int self_uid, int peer_uid, uint64_t before_id, 
         limit = 200;
     }
 
-    std::string sql = "SELECT id, client_msg_id, from_uid, to_uid, content FROM chat_message "
+    std::string sql = "SELECT id, client_msg_id, from_uid, to_uid, content, msg_type FROM chat_message "
                       "WHERE ((from_uid = ? AND to_uid = ?) OR (from_uid = ? AND to_uid = ?)) ";
     if (before_id > 0)
     {

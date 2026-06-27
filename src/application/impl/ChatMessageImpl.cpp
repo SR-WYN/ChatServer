@@ -230,6 +230,11 @@ Json::Value chatMsgToJson(const ChatMessageRecord& msg)
     element["fromuid"] = msg.from_uid;
     element["touid"] = msg.to_uid;
     element["snowflake_id"] = static_cast<Json::UInt64>(msg.id);
+    element["msg_type"] = msg.msg_type;
+    if (msg.msg_type == 1)
+    {
+        element["url"] = msg.content;
+    }
     return element;
 }
 } // namespace

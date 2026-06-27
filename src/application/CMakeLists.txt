@@ -3,6 +3,7 @@ add_library(cs_app STATIC
     interface/UserSearch.h
     interface/Friend.h
     interface/ChatMessage.h
+    interface/FileTransfer.h
     interface/Heartbeat.h
     interface/LogicSystem.h
     interface/MySqlMgr.h
@@ -19,6 +20,7 @@ add_library(cs_app STATIC
     impl/FriendImpl.cpp
     impl/ChatMessageImpl.h
     impl/ChatMessageImpl.cpp
+    impl/FileTransferImpl.cpp
     impl/HeartbeatImpl.h
     impl/HeartbeatImpl.cpp
     impl/LogicSystemImpl.h

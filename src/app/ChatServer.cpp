@@ -7,6 +7,8 @@
 #include "ChatMessage.h"
 #include "ChatMessageImpl.h"
 #include "ConfigMgr.h"
+#include "FileTransfer.h"
+#include "FileTransferImpl.h"
 #include "Friend.h"
 #include "FriendImpl.h"
 #include "Heartbeat.h"
@@ -120,6 +122,8 @@ int main()
         auto chat_message = std::shared_ptr<ChatMessage>(std::make_shared<ChatMessageImpl>(
             session_manager, route_cache, mysql_mgr, status_client, chat_client, id_generator,
             runtime_context));
+        auto file_transfer = std::shared_ptr<FileTransfer>(
+            std::make_shared<FileTransferImpl>(status_client));
         auto heartbeat = std::shared_ptr<Heartbeat>(std::make_shared<HeartbeatImpl>());
 
         // ---- 5. 消息路由器 ----
@@ -153,6 +157,16 @@ int main()
             MSG_CHAT_HISTORY_REQ,
             [chat_message](std::shared_ptr<CSession> session, const std::string &msg_data) {
                 chat_message->handleHistory(session, msg_data);
+            });
+        logic_system->registerHandler(
+            MSG_FILE_TRANSFER_REQ,
+            [file_transfer](std::shared_ptr<CSession> session, const std::string &msg_data) {
+                file_transfer->handleGetFileServer(session, msg_data);
+            });
+        logic_system->registerHandler(
+            MSG_FILE_TRANSFER_DONE,
+            [file_transfer](std::shared_ptr<CSession> session, const std::string &msg_data) {
+                file_transfer->handleFileTransferDone(session, msg_data);
             });
         logic_system->registerHandler(
             MSG_IMAGE_CHAT_MSG_REQ,
