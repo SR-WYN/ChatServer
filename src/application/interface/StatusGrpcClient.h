@@ -12,6 +12,13 @@ struct UserNodeLocation
     std::string rpc_port;
 };
 
+struct FileServerInfo
+{
+    std::string host;
+    std::string port;
+    std::string token;
+};
+
 class StatusGrpcClient
 {
 public:
@@ -21,9 +28,15 @@ public:
     virtual bool unregisterNode(const NodeInfo& node) = 0;
     virtual bool heartbeatNode(const std::string& name, const std::string& instance_id) = 0;
     virtual std::optional<UserNodeLocation> getUserNode(int uid) = 0;
-virtual bool bindUserToNode(int uid, const std::string& node_name) = 0;
+    virtual bool bindUserToNode(int uid, const std::string& node_name) = 0;
     virtual bool unbindUser(int uid) = 0;
 
-    // 新增：Token 验证接口
+    // Token 验证接口
     virtual int validateToken(int uid, const std::string& token) = 0;
+
+    // 获取可用的 FileServer 地址及临时 token
+    virtual std::optional<FileServerInfo> getFileServer(int uid) = 0;
+
+    // 删除指定用户的文件传输临时 token
+    virtual bool deleteFileToken(int uid) = 0;
 };

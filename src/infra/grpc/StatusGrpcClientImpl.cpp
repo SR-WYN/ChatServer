@@ -9,6 +9,10 @@
 
 using message::BindUserToNodeReq;
 using message::BindUserToNodeRsp;
+using message::DeleteFileTokenReq;
+using message::DeleteFileTokenRsp;
+using message::GetFileServerReq;
+using message::GetFileServerRsp;
 using message::GetUserNodeReq;
 using message::GetUserNodeRsp;
 using message::HeartbeatNodeReq;
@@ -185,4 +189,48 @@ int StatusGrpcClientImpl::validateToken(int uid, const std::string& token)
     }
 
     return reply.error();
+}
+
+std::optional<FileServerInfo> StatusGrpcClientImpl::getFileServer(int uid)
+{
+    ClientContext context;
+    GetFileServerReq request;
+    GetFileServerRsp reply;
+    request.set_uid(uid);
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        return std::nullopt;
+    }
+    Status status = stub->GetFileServer(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+    if (!status.ok() || reply.error() != ErrorCodes::SUCCESS)
+    {
+        return std::nullopt;
+    }
+    FileServerInfo info;
+    info.host = reply.host();
+    info.port = reply.port();
+    info.token = reply.token();
+    return info;
+}
+
+bool StatusGrpcClientImpl::deleteFileToken(int uid)
+{
+    ClientContext context;
+    DeleteFileTokenReq request;
+    DeleteFileTokenRsp reply;
+    request.set_uid(uid);
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        return false;
+    }
+    Status status = stub->DeleteFileToken(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+    return status.ok() && reply.error() == ErrorCodes::SUCCESS;
 }

@@ -63,6 +63,37 @@ AddFriendRsp ChatGrpcClientImpl::NotifyAddFriend(const std::string& rpc_host,
     return rsp;
 }
 
+ImageChatMsgRsp ChatGrpcClientImpl::NotifyImageChatMsg(const std::string& rpc_host,
+                                                       const std::string& rpc_port,
+                                                       const ImageChatMsgReq& req,
+                                                       const Json::Value& root_value)
+{
+    (void)root_value;
+    ImageChatMsgRsp rsp;
+    rsp.set_error(ErrorCodes::SUCCESS);
+    utils::Defer defer([&rsp, &req]() {
+        rsp.set_fromuid(req.fromuid());
+        rsp.set_touid(req.touid());
+    });
+    if (rpc_host.empty() || rpc_port.empty())
+    {
+        rsp.set_error(ErrorCodes::RPC_FAILED);
+        return rsp;
+    }
+    auto& pool = getOrCreatePool(rpc_host, rpc_port);
+    grpc::ClientContext context;
+    auto stub = pool.getConnection();
+    grpc::Status status = stub->NotifyImageChatMsg(&context, req, &rsp);
+    utils::Defer defercon([&stub, &pool]() {
+        pool.returnConnection(std::move(stub));
+    });
+    if (!status.ok())
+    {
+        rsp.set_error(ErrorCodes::RPC_FAILED);
+    }
+    return rsp;
+}
+
 AuthFriendRsp ChatGrpcClientImpl::NotifyAuthFriend(const std::string& rpc_host,
                                                    const std::string& rpc_port,
                                                    const AuthFriendReq& req)

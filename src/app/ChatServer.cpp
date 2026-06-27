@@ -155,6 +155,11 @@ int main()
                 chat_message->handleHistory(session, msg_data);
             });
         logic_system->registerHandler(
+            MSG_IMAGE_CHAT_MSG_REQ,
+            [chat_message](std::shared_ptr<CSession> session, const std::string &msg_data) {
+                chat_message->handleImageChat(session, msg_data);
+            });
+        logic_system->registerHandler(
             MSG_HEARTBEAT_PING,
             [heartbeat](std::shared_ptr<CSession> session, const std::string &msg_data) {
                 heartbeat->handlePing(session, msg_data);

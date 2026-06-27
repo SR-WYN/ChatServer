@@ -127,3 +127,40 @@ Status ChatGrpcServiceImpl::NotifyTextChatMsg(ServerContext* context,
     session->send(return_str, MSG_NOTIFY_TEXT_CHAT_MSG_REQ);
     return Status::OK;
 }
+
+Status ChatGrpcServiceImpl::NotifyImageChatMsg(ServerContext* context,
+                                               const ImageChatMsgReq* request,
+                                               ImageChatMsgRsp* reply)
+{
+    (void)context;
+    auto touid = request->touid();
+    auto session = _session_manager->getSession(touid);
+    reply->set_error(ErrorCodes::SUCCESS);
+
+    if (session == nullptr)
+    {
+        return Status::OK;
+    }
+
+    Json::Value notify;
+    notify["error"] = ErrorCodes::SUCCESS;
+    notify["fromuid"] = request->fromuid();
+    notify["touid"] = request->touid();
+
+    Json::Value image_array;
+    for (const auto& img_data : request->imagemsgs())
+    {
+        Json::Value element;
+        element["msgid"] = img_data.msgid();
+        element["url"] = img_data.url();
+        element["width"] = img_data.width();
+        element["height"] = img_data.height();
+        element["size"] = static_cast<Json::Int64>(img_data.size());
+        element["filename"] = img_data.filename();
+        image_array.append(element);
+    }
+    notify["image_array"] = image_array;
+    std::string return_str = notify.toStyledString();
+    session->send(return_str, MSG_NOTIFY_IMAGE_CHAT_MSG_REQ);
+    return Status::OK;
+}

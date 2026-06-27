@@ -47,6 +47,12 @@ enum MSG_IDS
     MSG_NOTIFY_TEXT_CHAT_MSG_REQ = 2013, // 通知文本聊天消息请求
     MSG_CHAT_HISTORY_REQ = 2014,         // 聊天历史请求
     MSG_CHAT_HISTORY_RSP = 2015,         // 聊天历史响应
+    MSG_FILE_TRANSFER_REQ = 2016,         // 索要 FileServer 地址
+    MSG_FILE_TRANSFER_RSP = 2017,         // 返回 FileServer 地址+token
+    MSG_FILE_TRANSFER_DONE = 2018,        // 通知删除 token
+    MSG_IMAGE_CHAT_MSG_REQ = 2019,        // 图片聊天消息请求
+    MSG_IMAGE_CHAT_MSG_RSP = 2020,        // 图片聊天消息响应
+    MSG_NOTIFY_IMAGE_CHAT_MSG_REQ = 2021, // 通知图片聊天消息
     MSG_HEARTBEAT_PING = 3001,           // 心跳 ping
     MSG_HEARTBEAT_PONG = 3002,           // 心跳 pong
 };

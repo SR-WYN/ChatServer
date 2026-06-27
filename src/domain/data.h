@@ -9,6 +9,7 @@ struct ChatMessageRecord
     int from_uid = 0;
     int to_uid = 0;
     std::string content;
+    int msg_type = 0; // 0=文本, 1=图片
 };
 
 struct UserInfo

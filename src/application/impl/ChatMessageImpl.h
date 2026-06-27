@@ -25,6 +25,7 @@ public:
                     const RuntimeContext& runtime_context);
 
     void handleTextChat(std::shared_ptr<CSession> session, const std::string& msg_data) override;
+    void handleImageChat(std::shared_ptr<CSession> session, const std::string& msg_data) override;
     void handleHistory(std::shared_ptr<CSession> session, const std::string& msg_data) override;
 
 private:
@@ -35,6 +36,11 @@ private:
     bool persistOneMessage(int from_uid, int to_uid, const std::string& msgid,
                            const std::string& content, bool delivered_online);
     bool deliverToLocalSession(int from_uid, int to_uid, const Json::Value& text_array);
+
+    bool deliverImageChat(int from_uid, int to_uid, const Json::Value& image_array);
+    void persistImageBatch(int from_uid, int to_uid, const Json::Value& image_array,
+                           bool delivered_online);
+    bool deliverImageToLocalSession(int from_uid, int to_uid, const Json::Value& image_array);
 
     std::shared_ptr<UserSessionManager> _session_manager;
     std::shared_ptr<UserNodeRouteCache> _route_cache;

@@ -19,6 +19,9 @@ public:
     TextChatMsgRsp NotifyTextChatMsg(const std::string& rpc_host, const std::string& rpc_port,
                                      const TextChatMsgReq& req,
                                      const Json::Value& root_value) override;
+    ImageChatMsgRsp NotifyImageChatMsg(const std::string& rpc_host, const std::string& rpc_port,
+                                       const ImageChatMsgReq& req,
+                                       const Json::Value& root_value) override;
 
 private:
     ChatConPool& getOrCreatePool(const std::string& host, const std::string& port);

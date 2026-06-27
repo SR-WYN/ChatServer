@@ -10,6 +10,8 @@ using message::AddFriendReq;
 using message::AddFriendRsp;
 using message::AuthFriendReq;
 using message::AuthFriendRsp;
+using message::ImageChatMsgReq;
+using message::ImageChatMsgRsp;
 using message::TextChatMsgReq;
 using message::TextChatMsgRsp;
 
@@ -27,4 +29,8 @@ public:
                                              const std::string& rpc_port,
                                              const TextChatMsgReq& req,
                                              const Json::Value& root_value) = 0;
+    virtual ImageChatMsgRsp NotifyImageChatMsg(const std::string& rpc_host,
+                                               const std::string& rpc_port,
+                                               const ImageChatMsgReq& req,
+                                               const Json::Value& root_value) = 0;
 };

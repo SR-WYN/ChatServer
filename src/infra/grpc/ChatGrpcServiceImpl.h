@@ -13,6 +13,8 @@ using message::AddFriendRsp;
 using message::AuthFriendReq;
 using message::AuthFriendRsp;
 using message::ChatService;
+using message::ImageChatMsgReq;
+using message::ImageChatMsgRsp;
 using message::TextChatMsgReq;
 using message::TextChatMsgRsp;
 
@@ -32,6 +34,8 @@ public:
                             AuthFriendRsp* reply) override;
     Status NotifyTextChatMsg(ServerContext* context, const TextChatMsgReq* request,
                              TextChatMsgRsp* reply) override;
+    Status NotifyImageChatMsg(ServerContext* context, const ImageChatMsgReq* request,
+                              ImageChatMsgRsp* reply) override;
 
 private:
     std::shared_ptr<UserSessionManager> _session_manager;

@@ -13,6 +13,8 @@ public:
 
     virtual void handleTextChat(std::shared_ptr<CSession> session,
                                 const std::string& msg_data) = 0;
+    virtual void handleImageChat(std::shared_ptr<CSession> session,
+                                 const std::string& msg_data) = 0;
     virtual void handleHistory(std::shared_ptr<CSession> session,
                                const std::string& msg_data) = 0;
 };

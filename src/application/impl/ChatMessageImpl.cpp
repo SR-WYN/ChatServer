@@ -329,3 +329,173 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
     }
     result["text_array"] = text_array;
 }
+
+bool ChatMessageImpl::deliverImageToLocalSession(int from_uid, int to_uid,
+                                                 const Json::Value& image_array)
+{
+    auto peer_session = _session_manager->getSession(to_uid);
+    if (!peer_session)
+    {
+        return false;
+    }
+    Json::Value notify;
+    notify["error"] = ErrorCodes::SUCCESS;
+    notify["fromuid"] = from_uid;
+    notify["touid"] = to_uid;
+    notify["image_array"] = image_array;
+    peer_session->send(notify.toStyledString(), MSG_NOTIFY_IMAGE_CHAT_MSG_REQ);
+    return true;
+}
+
+bool ChatMessageImpl::deliverImageChat(int from_uid, int to_uid,
+                                       const Json::Value& image_array)
+{
+    if (deliverImageToLocalSession(from_uid, to_uid, image_array))
+    {
+        return true;
+    }
+
+    auto cached = _route_cache->get(to_uid);
+    std::optional<UserNodeLocation> loc;
+    if (cached)
+    {
+        loc = cached;
+    }
+    else
+    {
+        loc = _status_client->getUserNode(to_uid);
+        if (loc)
+        {
+            _route_cache->put(to_uid, *loc);
+        }
+    }
+
+    if (!loc)
+    {
+        return false;
+    }
+
+    const auto& self = _runtime_context.getNodeInfo();
+    if (loc->node_name == self.name)
+    {
+        return false;
+    }
+
+    message::ImageChatMsgReq image_msg_req;
+    image_msg_req.set_fromuid(from_uid);
+    image_msg_req.set_touid(to_uid);
+    for (const auto& img_obj : image_array)
+    {
+        if (!img_obj.isObject())
+        {
+            continue;
+        }
+        auto* img_msg = image_msg_req.add_imagemsgs();
+        img_msg->set_msgid(img_obj["msgid"].asString());
+        img_msg->set_url(img_obj["url"].asString());
+        img_msg->set_width(img_obj["width"].asInt());
+        img_msg->set_height(img_obj["height"].asInt());
+        img_msg->set_size(static_cast<int64_t>(img_obj["size"].asInt64()));
+        img_msg->set_filename(img_obj["filename"].asString());
+    }
+
+    Json::Value return_value;
+    message::ImageChatMsgRsp rsp =
+        _chat_client->NotifyImageChatMsg(loc->rpc_host, loc->rpc_port, image_msg_req, return_value);
+    return rsp.error() == ErrorCodes::SUCCESS;
+}
+
+void ChatMessageImpl::persistImageBatch(int from_uid, int to_uid,
+                                        const Json::Value& image_array, bool delivered_online)
+{
+    if (!image_array.isArray() || image_array.empty())
+    {
+        return;
+    }
+
+    for (const auto& img_obj : image_array)
+    {
+        if (!img_obj.isObject())
+        {
+            continue;
+        }
+        const std::string msgid = img_obj.isMember("msgid") ? img_obj["msgid"].asString() : "";
+        const std::string url = img_obj.isMember("url") ? img_obj["url"].asString() : "";
+        if (msgid.empty() || url.empty())
+        {
+            continue;
+        }
+
+        PersistTask task;
+        task.message.id = _id_generator->nextId();
+        task.message.client_msg_id = msgid;
+        task.message.from_uid = from_uid;
+        task.message.to_uid = to_uid;
+        task.message.content = url;
+        task.message.msg_type = 1; // 图片消息
+        task.delivered_online = delivered_online;
+
+        auto mysql_mgr = _mysql_mgr;
+        ThreadPoolMgr::getInstance().enqueueMySql(
+            [mysql_mgr, task = std::move(task)]() mutable {
+                if (mysql_mgr->existsByClientMsgId(task.message.from_uid,
+                                                   task.message.client_msg_id))
+                {
+                    LOGW(LogModule::Chat,
+                         "duplicate image ignored | from_uid={} client_msg_id={}",
+                         task.message.from_uid, task.message.client_msg_id);
+                    return;
+                }
+
+                if (!mysql_mgr->saveMessage(task.message))
+                {
+                    LOGE(LogModule::Chat,
+                         "failed to save image | snowflake_id={} from_uid={} to_uid={} "
+                         "client_msg_id={}",
+                         task.message.id, task.message.from_uid, task.message.to_uid,
+                         task.message.client_msg_id);
+                    return;
+                }
+
+                LOGI(LogModule::Chat,
+                     "image persisted | snowflake_id={} from_uid={} to_uid={} client_msg_id={}",
+                     task.message.id, task.message.from_uid, task.message.to_uid,
+                     task.message.client_msg_id);
+
+                if (!task.delivered_online)
+                {
+                    mysql_mgr->enqueueOffline(task.message.id, task.message.to_uid);
+                    LOGI(LogModule::Chat, "offline image enqueued | snowflake_id={} to_uid={}",
+                         task.message.id, task.message.to_uid);
+                }
+            });
+    }
+}
+
+void ChatMessageImpl::handleImageChat(std::shared_ptr<CSession> session,
+                                      const std::string& msg_data)
+{
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+    if (root.isNull() || root.empty())
+    {
+        return;
+    }
+    auto fromuid = root["fromuid"].asInt();
+    auto touid = root["touid"].asInt();
+    const Json::Value image_array = root["image_array"];
+    Json::Value return_value;
+    return_value["error"] = ErrorCodes::SUCCESS;
+    return_value["fromuid"] = touid;
+    return_value["touid"] = fromuid;
+    return_value["image_array"] = image_array;
+
+    utils::Defer defer([&return_value, session]() {
+        std::string return_str = return_value.toStyledString();
+        session->send(return_str, MSG_IMAGE_CHAT_MSG_RSP);
+    });
+
+    const bool delivered_online = deliverImageChat(fromuid, touid, image_array);
+    persistImageBatch(fromuid, touid, image_array, delivered_online);
+}

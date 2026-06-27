@@ -123,6 +123,25 @@ message ValidateTokenRsp {
   int32 uid = 2;
 }
 
+message GetFileServerReq {
+  int32 uid = 1;
+}
+
+message GetFileServerRsp {
+  int32 error = 1;
+  string host = 2;
+  string port = 3;
+  string token = 4;
+}
+
+message DeleteFileTokenReq {
+  int32 uid = 1;
+}
+
+message DeleteFileTokenRsp {
+  int32 error = 1;
+}
+
 service StatusService {
   rpc GetChatServer (GetChatServerReq) returns (GetChatServerRsp);
   rpc Login(LoginReq) returns(LoginRsp);
@@ -134,6 +153,8 @@ service StatusService {
   rpc BindUserToNode(BindUserToNodeReq) returns (BindUserToNodeRsp);
   rpc UnbindUser(UnbindUserReq) returns (UnbindUserRsp);
   rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenRsp);
+  rpc GetFileServer(GetFileServerReq) returns (GetFileServerRsp);
+  rpc DeleteFileToken(DeleteFileTokenReq) returns (DeleteFileTokenRsp);
 }
 
 message AddFriendReq {
@@ -207,10 +228,39 @@ message TextChatMsgRsp {
   bool recipient_online = 5;
 }
 
+message ImageChatData {
+  string msgid = 1;
+  string url = 2;
+  int32 width = 3;
+  int32 height = 4;
+  int64 size = 5;
+  string filename = 6;
+}
+
+message ImageChatMsgReq {
+  int32 fromuid = 1;
+  int32 touid = 2;
+  repeated ImageChatData imagemsgs = 3;
+}
+
+message ImageChatMsgRsp {
+  int32 error = 1;
+  int32 fromuid = 2;
+  int32 touid = 3;
+}
+
+message NotifyImageChatMsgReq {
+  int32 error = 1;
+  int32 fromuid = 2;
+  int32 touid = 3;
+  repeated ImageChatData imagemsgs = 4;
+}
+
 service ChatService {
   rpc NotifyAddFriend(AddFriendReq) returns (AddFriendRsp);
   rpc ReplyAddFriend(ReplyFriendReq) returns(ReplyFriendRsp);
   rpc SendChatMsg(SendChatMsgReq) returns(SendChatMsgRsp);
   rpc NotifyAuthFriend(AuthFriendReq) returns(AuthFriendRsp);
   rpc NotifyTextChatMsg(TextChatMsgReq) returns(TextChatMsgRsp);
+  rpc NotifyImageChatMsg(ImageChatMsgReq) returns(ImageChatMsgRsp);
 }

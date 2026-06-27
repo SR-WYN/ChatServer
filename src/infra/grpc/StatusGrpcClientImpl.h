@@ -19,6 +19,8 @@ public:
     bool bindUserToNode(int uid, const std::string& node_name) override;
     bool unbindUser(int uid) override;
     int validateToken(int uid, const std::string& token) override;
+    std::optional<FileServerInfo> getFileServer(int uid) override;
+    bool deleteFileToken(int uid) override;
 
 private:
     std::unique_ptr<StatusConPool> _pool;
