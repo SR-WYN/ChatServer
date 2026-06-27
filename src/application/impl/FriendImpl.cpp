@@ -2,6 +2,8 @@
 #include "FriendImpl.h"
 #include "CSession.h"
 #include "ChatGrpcClient.h"
+#include "Log.h"
+#include "LogModule.h"
 #include "MySqlMgr.h"
 #include "RuntimeContext.h"
 #include "StatusGrpcClient.h"
@@ -12,6 +14,7 @@
 #include "data.h"
 #include "message.pb.h"
 #include "utils.h"
+#include <chrono>
 #include <json/reader.h>
 #include <json/value.h>
 #include <memory>
@@ -37,6 +40,7 @@ FriendImpl::FriendImpl(std::shared_ptr<StatusGrpcClient> status_client,
 void FriendImpl::handleAddFriend(std::shared_ptr<CSession> session, const std::string& msg_data)
 {
     (void)session;
+    const auto start = std::chrono::steady_clock::now();
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
@@ -45,14 +49,20 @@ void FriendImpl::handleAddFriend(std::shared_ptr<CSession> session, const std::s
     auto alias_name = root["alias_name"].asString();
     auto touid = root["touid"].asInt();
 
+    LOGI(LogModule::Friend, "handleAddFriend from_uid={} to_uid={} name={} alias={}", uid, touid,
+         name, alias_name);
+
     Json::Value return_value;
     return_value["error"] = ErrorCodes::SUCCESS;
-    utils::Defer defer([&return_value, session]() {
+    utils::Defer defer([&return_value, session, uid, touid]() {
+        LOGI(LogModule::Friend, "add friend rsp from_uid={} to_uid={} error={}", uid, touid,
+             return_value["error"].asInt());
         std::string return_str = return_value.toStyledString();
         session->send(return_str, MSG_ADD_FRIEND_RSP);
     });
 
     _mysql_mgr->addFriendApply(uid, touid, alias_name);
+    LOGI(LogModule::Friend, "add friend apply persisted from_uid={} to_uid={}", uid, touid);
 
     auto peer_loc = _route_cache->get(touid);
     if (!peer_loc)
@@ -61,11 +71,19 @@ void FriendImpl::handleAddFriend(std::shared_ptr<CSession> session, const std::s
         if (peer_loc)
         {
             _route_cache->put(touid, *peer_loc);
+            LOGI(LogModule::Friend, "resolved peer node from_uid={} to_uid={} node={}", uid, touid,
+                 peer_loc->node_name);
         }
+    }
+    else
+    {
+        LOGI(LogModule::Friend, "peer node cache hit from_uid={} to_uid={} node={}", uid, touid,
+             peer_loc->node_name);
     }
 
     if (!peer_loc)
     {
+        LOGW(LogModule::Friend, "add friend: target offline from_uid={} to_uid={}", uid, touid);
         return;
     }
 
@@ -98,6 +116,12 @@ void FriendImpl::handleAddFriend(std::shared_ptr<CSession> session, const std::s
             notify["alias_name"] = alias_name;
             std::string return_str = notify.toStyledString();
             to_user_session->send(return_str, MSG_NOTIFY_ADDFRIEND_REQ);
+            LOGI(LogModule::Friend, "notify add friend locally from_uid={} to_uid={}", uid, touid);
+        }
+        else
+        {
+            LOGW(LogModule::Friend, "add friend: target not on local node from_uid={} to_uid={}",
+                 uid, touid);
         }
         return;
     }
@@ -114,17 +138,28 @@ void FriendImpl::handleAddFriend(std::shared_ptr<CSession> session, const std::s
         add_req.set_sex(apply_info->sex);
     }
     add_req.set_alias_name(alias_name);
-    _chat_client->NotifyAddFriend(peer_loc->rpc_host, peer_loc->rpc_port, add_req);
+    auto rsp = _chat_client->NotifyAddFriend(peer_loc->rpc_host, peer_loc->rpc_port, add_req);
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Friend,
+         "NotifyAddFriend cross-node from_uid={} to_uid={} target_node={} error={} cost={}ms", uid,
+         touid, peer_loc->node_name, rsp.error(), cost_ms);
 }
 
 void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::string& msg_data)
 {
+    const auto start = std::chrono::steady_clock::now();
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
     const int applicant_uid = root["fromuid"].asInt();
     const int accepter_uid = root["touid"].asInt();
     auto alias_name = root["alias_name"].asString();
+
+    LOGI(LogModule::Friend, "handleAuthFriend applicant={} accepter={} alias={}", applicant_uid,
+         accepter_uid, alias_name);
+
     Json::Value return_value;
     return_value["error"] = ErrorCodes::SUCCESS;
     auto user_info = std::make_shared<UserInfo>();
@@ -143,7 +178,9 @@ void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::
     {
         return_value["error"] = ErrorCodes::UID_INVALID;
     }
-    utils::Defer defer([&return_value, session] {
+    utils::Defer defer([&return_value, session, applicant_uid, accepter_uid] {
+        LOGI(LogModule::Friend, "auth friend rsp applicant={} accepter={} error={}", applicant_uid,
+             accepter_uid, return_value["error"].asInt());
         std::string return_str = return_value.toStyledString();
         session->send(return_str, MSG_AUTH_FRIEND_RSP);
     });
@@ -153,6 +190,8 @@ void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::
 
     _mysql_mgr->authFriendApply(applicant_uid, accepter_uid);
     _mysql_mgr->addFriend(applicant_uid, accepter_uid, alias_applicant_for_accepter, alias_name);
+    LOGI(LogModule::Friend, "friend relation established applicant={} accepter={}", applicant_uid,
+         accepter_uid);
 
     std::string applicant_peer_alias;
     _mysql_mgr->getFriendAlias(applicant_uid, accepter_uid, applicant_peer_alias);
@@ -164,10 +203,14 @@ void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::
         if (peer_loc)
         {
             _route_cache->put(applicant_uid, *peer_loc);
+            LOGI(LogModule::Friend, "resolved peer node for auth applicant={} node={}",
+                 applicant_uid, peer_loc->node_name);
         }
     }
     if (!peer_loc)
     {
+        LOGW(LogModule::Friend, "auth friend: applicant offline applicant={} accepter={}",
+             applicant_uid, accepter_uid);
         return;
     }
 
@@ -197,6 +240,14 @@ void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::
             }
             std::string return_str = notify.toStyledString();
             peer_session->send(return_str, MSG_NOTIFY_AUTH_FRIEND_REQ);
+            LOGI(LogModule::Friend, "notify auth friend locally applicant={} accepter={}",
+                 applicant_uid, accepter_uid);
+        }
+        else
+        {
+            LOGW(LogModule::Friend,
+                 "auth friend: applicant not on local node applicant={} accepter={}",
+                 applicant_uid, accepter_uid);
         }
         return;
     }
@@ -204,5 +255,11 @@ void FriendImpl::handleAuthFriend(std::shared_ptr<CSession> session, const std::
     message::AuthFriendReq auth_req;
     auth_req.set_fromuid(accepter_uid);
     auth_req.set_touid(applicant_uid);
-    _chat_client->NotifyAuthFriend(peer_loc->rpc_host, peer_loc->rpc_port, auth_req);
+    auto rsp = _chat_client->NotifyAuthFriend(peer_loc->rpc_host, peer_loc->rpc_port, auth_req);
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Friend,
+         "NotifyAuthFriend cross-node applicant={} accepter={} target_node={} error={} cost={}ms",
+         applicant_uid, accepter_uid, peer_loc->node_name, rsp.error(), cost_ms);
 }

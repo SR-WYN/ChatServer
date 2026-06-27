@@ -4,18 +4,20 @@
 #include <algorithm>
 #include <set>
 #include "ChatGrpcClient.h"
+#include "Log.h"
+#include "LogModule.h"
 #include "data.h"
 #include "IdGenerator.h"
 #include "MySqlMgr.h"
 #include "RuntimeContext.h"
 #include "ThreadPoolMgr.h"
-#include "Log.h"
 #include "StatusGrpcClient.h"
 #include "UserNodeRouteCache.h"
 #include "UserSessionManager.h"
 #include "const.h"
 #include "message.pb.h"
 #include "utils.h"
+#include <chrono>
 #include <json/reader.h>
 #include <json/value.h>
 #include <string>
@@ -49,6 +51,7 @@ bool ChatMessageImpl::deliverToLocalSession(int from_uid, int to_uid,
     auto peer_session = _session_manager->getSession(to_uid);
     if (!peer_session)
     {
+        LOGD(LogModule::Chat, "deliverToLocalSession: no local session to_uid={}", to_uid);
         return false;
     }
     Json::Value notify;
@@ -57,6 +60,8 @@ bool ChatMessageImpl::deliverToLocalSession(int from_uid, int to_uid,
     notify["touid"] = to_uid;
     notify["text_array"] = text_array;
     peer_session->send(notify.toStyledString(), MSG_NOTIFY_TEXT_CHAT_MSG_REQ);
+    LOGI(LogModule::Chat, "delivered text locally from_uid={} to_uid={} count={}", from_uid, to_uid,
+         text_array.size());
     return true;
 }
 
@@ -73,6 +78,8 @@ bool ChatMessageImpl::deliverTextChat(int from_uid, int to_uid, const Json::Valu
     if (cached)
     {
         loc = cached;
+        LOGD(LogModule::Chat, "text chat route cache hit to_uid={} node={}", to_uid,
+             loc->node_name);
     }
     else
     {
@@ -80,17 +87,21 @@ bool ChatMessageImpl::deliverTextChat(int from_uid, int to_uid, const Json::Valu
         if (loc)
         {
             _route_cache->put(to_uid, *loc);
+            LOGI(LogModule::Chat, "text chat resolved route to_uid={} node={}", to_uid,
+                 loc->node_name);
         }
     }
 
     if (!loc)
     {
+        LOGW(LogModule::Chat, "text chat: no route to_uid={}", to_uid);
         return false;
     }
 
     const auto& self = _runtime_context.getNodeInfo();
     if (loc->node_name == self.name)
     {
+        LOGD(LogModule::Chat, "text chat: target on same node but not online to_uid={}", to_uid);
         return false;
     }
 
@@ -112,8 +123,12 @@ bool ChatMessageImpl::deliverTextChat(int from_uid, int to_uid, const Json::Valu
         _chat_client->NotifyTextChatMsg(loc->rpc_host, loc->rpc_port, text_msg_req, return_value);
     if (rsp.error() != ErrorCodes::SUCCESS)
     {
+        LOGW(LogModule::Chat, "text chat cross-node failed to_uid={} node={} error={}", to_uid,
+             loc->node_name, rsp.error());
         return false;
     }
+    LOGI(LogModule::Chat, "text chat cross-node delivered to_uid={} node={} recipient_online={}",
+         to_uid, loc->node_name, rsp.recipient_online());
     return rsp.recipient_online();
 }
 
@@ -186,11 +201,13 @@ void ChatMessageImpl::persistOutgoingBatch(int from_uid, int to_uid,
 
 void ChatMessageImpl::handleTextChat(std::shared_ptr<CSession> session, const std::string& msg_data)
 {
+    const auto start = std::chrono::steady_clock::now();
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
     if (root.isNull() || root.empty())
     {
+        LOGW(LogModule::Chat, "handleTextChat: invalid JSON session={}", session->getSessionId());
         return;
     }
     auto fromuid = root["fromuid"].asInt();
@@ -202,13 +219,24 @@ void ChatMessageImpl::handleTextChat(std::shared_ptr<CSession> session, const st
     return_value["touid"] = fromuid;
     return_value["text_array"] = text_array;
 
-    utils::Defer defer([&return_value, session]() {
+    LOGI(LogModule::Chat, "handleTextChat from_uid={} to_uid={} count={}", fromuid, touid,
+         text_array.size());
+
+    utils::Defer defer([&return_value, session, fromuid, touid]() {
         std::string return_str = return_value.toStyledString();
+        LOGI(LogModule::Chat, "text chat ack from_uid={} to_uid={} error={}", fromuid, touid,
+             return_value["error"].asInt());
         session->send(return_str, MSG_TEXT_CHAT_MSG_RSP);
     });
 
     const bool delivered_online = deliverTextChat(fromuid, touid, text_array, return_value);
     persistOutgoingBatch(fromuid, touid, text_array, delivered_online);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Chat, "handleTextChat done from_uid={} to_uid={} delivered_online={} cost={}ms",
+         fromuid, touid, delivered_online, cost_ms);
 }
 
 namespace
@@ -242,6 +270,7 @@ Json::Value chatMsgToJson(const ChatMessageRecord& msg)
 void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
                                     const std::string& msg_data)
 {
+    const auto start = std::chrono::steady_clock::now();
     Json::Reader reader;
     Json::Value root;
     Json::Value result;
@@ -254,6 +283,7 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
 
     if (!reader.parse(msg_data, root))
     {
+        LOGW(LogModule::Chat, "handleHistory: invalid JSON session={}", session->getSessionId());
         result["error"] = ErrorCodes::ERROR_JSON;
         return;
     }
@@ -265,12 +295,15 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
     }
     if (self_uid <= 0)
     {
+        LOGW(LogModule::Chat, "handleHistory: invalid uid session={}", session->getSessionId());
         result["error"] = ErrorCodes::TOKEN_INVALID;
         return;
     }
 
     if (!root.isMember("peer_uid"))
     {
+        LOGW(LogModule::Chat, "handleHistory: missing peer_uid session={} uid={}",
+             session->getSessionId(), self_uid);
         result["error"] = ErrorCodes::ERROR_JSON;
         return;
     }
@@ -287,12 +320,19 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
         limit = root["limit"].asInt();
     }
 
+    LOGI(LogModule::Chat, "handleHistory self_uid={} peer_uid={} before_id={} limit={}", self_uid,
+         peer_uid, before_id, limit);
+
     std::vector<ChatMessageRecord> messages;
     if (!_mysql_mgr->queryHistory(self_uid, peer_uid, before_id, limit, messages))
     {
+        LOGE(LogModule::Chat, "handleHistory: queryHistory failed self_uid={} peer_uid={}",
+             self_uid, peer_uid);
         result["error"] = ErrorCodes::RPC_FAILED;
         return;
     }
+    LOGI(LogModule::Chat, "handleHistory: loaded history count={} self_uid={} peer_uid={}",
+         messages.size(), self_uid, peer_uid);
 
     if (before_id == 0)
     {
@@ -303,6 +343,9 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
             if (!inbox_ids.empty())
             {
                 _mysql_mgr->removeOfflineByIds(inbox_ids);
+                LOGI(LogModule::Chat,
+                     "handleHistory: removed offline inbox ids count={} self_uid={}",
+                     inbox_ids.size(), self_uid);
             }
 
             std::set<uint64_t> seen_ids;
@@ -323,6 +366,8 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
                       [](const ChatMessageRecord& a, const ChatMessageRecord& b) {
                           return a.id < b.id;
                       });
+            LOGI(LogModule::Chat, "handleHistory: merged offline count={} self_uid={}",
+                 offline_msgs.size(), self_uid);
         }
     }
 
@@ -333,6 +378,13 @@ void ChatMessageImpl::handleHistory(std::shared_ptr<CSession> session,
         text_array.append(chatMsgToJson(msg));
     }
     result["text_array"] = text_array;
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Chat,
+         "handleHistory done self_uid={} peer_uid={} total={} cost={}ms", self_uid, peer_uid,
+         messages.size(), cost_ms);
 }
 
 bool ChatMessageImpl::deliverImageToLocalSession(int from_uid, int to_uid,
@@ -341,6 +393,7 @@ bool ChatMessageImpl::deliverImageToLocalSession(int from_uid, int to_uid,
     auto peer_session = _session_manager->getSession(to_uid);
     if (!peer_session)
     {
+        LOGD(LogModule::Chat, "deliverImageToLocalSession: no local session to_uid={}", to_uid);
         return false;
     }
     Json::Value notify;
@@ -349,6 +402,8 @@ bool ChatMessageImpl::deliverImageToLocalSession(int from_uid, int to_uid,
     notify["touid"] = to_uid;
     notify["image_array"] = image_array;
     peer_session->send(notify.toStyledString(), MSG_NOTIFY_IMAGE_CHAT_MSG_REQ);
+    LOGI(LogModule::Chat, "delivered image locally from_uid={} to_uid={} count={}", from_uid, to_uid,
+         image_array.size());
     return true;
 }
 
@@ -365,6 +420,8 @@ bool ChatMessageImpl::deliverImageChat(int from_uid, int to_uid,
     if (cached)
     {
         loc = cached;
+        LOGD(LogModule::Chat, "image chat route cache hit to_uid={} node={}", to_uid,
+             loc->node_name);
     }
     else
     {
@@ -372,17 +429,21 @@ bool ChatMessageImpl::deliverImageChat(int from_uid, int to_uid,
         if (loc)
         {
             _route_cache->put(to_uid, *loc);
+            LOGI(LogModule::Chat, "image chat resolved route to_uid={} node={}", to_uid,
+                 loc->node_name);
         }
     }
 
     if (!loc)
     {
+        LOGW(LogModule::Chat, "image chat: no route to_uid={}", to_uid);
         return false;
     }
 
     const auto& self = _runtime_context.getNodeInfo();
     if (loc->node_name == self.name)
     {
+        LOGD(LogModule::Chat, "image chat: target on same node but not online to_uid={}", to_uid);
         return false;
     }
 
@@ -404,10 +465,17 @@ bool ChatMessageImpl::deliverImageChat(int from_uid, int to_uid,
         img_msg->set_filename(img_obj["filename"].asString());
     }
 
-    Json::Value return_value;
     message::ImageChatMsgRsp rsp =
-        _chat_client->NotifyImageChatMsg(loc->rpc_host, loc->rpc_port, image_msg_req, return_value);
-    return rsp.error() == ErrorCodes::SUCCESS;
+        _chat_client->NotifyImageChatMsg(loc->rpc_host, loc->rpc_port, image_msg_req, Json::Value());
+    if (rsp.error() != ErrorCodes::SUCCESS)
+    {
+        LOGW(LogModule::Chat, "image chat cross-node failed to_uid={} node={} error={}", to_uid,
+             loc->node_name, rsp.error());
+        return false;
+    }
+    LOGI(LogModule::Chat, "image chat cross-node delivered to_uid={} node={}", to_uid,
+         loc->node_name);
+    return true;
 }
 
 void ChatMessageImpl::persistImageBatch(int from_uid, int to_uid,
@@ -480,11 +548,13 @@ void ChatMessageImpl::persistImageBatch(int from_uid, int to_uid,
 void ChatMessageImpl::handleImageChat(std::shared_ptr<CSession> session,
                                       const std::string& msg_data)
 {
+    const auto start = std::chrono::steady_clock::now();
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
     if (root.isNull() || root.empty())
     {
+        LOGW(LogModule::Chat, "handleImageChat: invalid JSON session={}", session->getSessionId());
         return;
     }
     auto fromuid = root["fromuid"].asInt();
@@ -496,11 +566,22 @@ void ChatMessageImpl::handleImageChat(std::shared_ptr<CSession> session,
     return_value["touid"] = fromuid;
     return_value["image_array"] = image_array;
 
-    utils::Defer defer([&return_value, session]() {
+    LOGI(LogModule::Chat, "handleImageChat from_uid={} to_uid={} count={}", fromuid, touid,
+         image_array.size());
+
+    utils::Defer defer([&return_value, session, fromuid, touid]() {
         std::string return_str = return_value.toStyledString();
+        LOGI(LogModule::Chat, "image chat ack from_uid={} to_uid={} error={}", fromuid, touid,
+             return_value["error"].asInt());
         session->send(return_str, MSG_IMAGE_CHAT_MSG_RSP);
     });
 
     const bool delivered_online = deliverImageChat(fromuid, touid, image_array);
     persistImageBatch(fromuid, touid, image_array, delivered_online);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Chat, "handleImageChat done from_uid={} to_uid={} delivered_online={} cost={}ms",
+         fromuid, touid, delivered_online, cost_ms);
 }

@@ -2,9 +2,11 @@
 #include "FileTransferImpl.h"
 #include "CSession.h"
 #include "Log.h"
+#include "LogModule.h"
 #include "StatusGrpcClient.h"
 #include "const.h"
 #include "utils.h"
+#include <chrono>
 #include <json/reader.h>
 #include <json/value.h>
 #include <json/writer.h>
@@ -17,6 +19,7 @@ FileTransferImpl::FileTransferImpl(std::shared_ptr<StatusGrpcClient> status_clie
 void FileTransferImpl::handleGetFileServer(std::shared_ptr<CSession> session,
                                            const std::string& msg_data)
 {
+    const auto start = std::chrono::steady_clock::now();
     Json::Reader reader;
     Json::Value root;
     Json::Value rsp;
@@ -29,6 +32,8 @@ void FileTransferImpl::handleGetFileServer(std::shared_ptr<CSession> session,
 
     if (!reader.parse(msg_data, root) || root.isNull() || root.empty())
     {
+        LOGW(LogModule::Chat, "handleGetFileServer: invalid JSON session={}",
+             session->getSessionId());
         rsp["error"] = ErrorCodes::ERROR_JSON;
         return;
     }
@@ -36,6 +41,7 @@ void FileTransferImpl::handleGetFileServer(std::shared_ptr<CSession> session,
     const int uid = root.isMember("uid") ? root["uid"].asInt() : session->getUserId();
     if (uid <= 0)
     {
+        LOGW(LogModule::Chat, "handleGetFileServer: invalid uid session={}", session->getSessionId());
         rsp["error"] = ErrorCodes::TOKEN_INVALID;
         return;
     }
@@ -43,8 +49,7 @@ void FileTransferImpl::handleGetFileServer(std::shared_ptr<CSession> session,
     auto file_server = _status_client->getFileServer(uid);
     if (!file_server)
     {
-        Log::warn(LogModule::Chat, "handleGetFileServer: no available file server for uid={}",
-                  uid);
+        LOGW(LogModule::Chat, "handleGetFileServer: no available file server for uid={}", uid);
         rsp["error"] = ErrorCodes::RPC_FAILED;
         return;
     }
@@ -52,8 +57,12 @@ void FileTransferImpl::handleGetFileServer(std::shared_ptr<CSession> session,
     rsp["host"] = file_server->host;
     rsp["port"] = file_server->port;
     rsp["token"] = file_server->token;
-    Log::info(LogModule::Chat, "handleGetFileServer: uid={} host={} port={}", uid,
-              file_server->host, file_server->port);
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Chat,
+         "handleGetFileServer: uid={} host={} port={} token={} cost={}ms", uid,
+         file_server->host, file_server->port, file_server->token, cost_ms);
 }
 
 void FileTransferImpl::handleFileTransferDone(std::shared_ptr<CSession> session,
@@ -64,15 +73,23 @@ void FileTransferImpl::handleFileTransferDone(std::shared_ptr<CSession> session,
     Json::Value root;
     if (!reader.parse(msg_data, root) || root.isNull() || root.empty())
     {
+        LOGW(LogModule::Chat, "handleFileTransferDone: invalid JSON session={}",
+             session->getSessionId());
         return;
     }
 
     const int uid = root.isMember("uid") ? root["uid"].asInt() : session->getUserId();
     if (uid <= 0)
     {
+        LOGW(LogModule::Chat, "handleFileTransferDone: invalid uid session={}",
+             session->getSessionId());
         return;
     }
 
-    _status_client->deleteFileToken(uid);
-    Log::info(LogModule::Chat, "handleFileTransferDone: token deleted for uid={}", uid);
+    if (!_status_client->deleteFileToken(uid))
+    {
+        LOGW(LogModule::Chat, "handleFileTransferDone: delete token failed uid={}", uid);
+        return;
+    }
+    LOGI(LogModule::Chat, "handleFileTransferDone: token deleted for uid={}", uid);
 }

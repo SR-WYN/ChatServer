@@ -1,4 +1,6 @@
 #include "ConfigMgr.h"
+#include "Log.h"
+#include "LogModule.h"
 #include <algorithm>
 #include <cctype>
 #include <fstream>
@@ -9,6 +11,7 @@ std::string SectionInfo::operator[](const std::string &key) const
     auto it = _section_datas.find(key);
     if (it == _section_datas.end())
     {
+        Log::debug(LogModule::Config, "Config key not found: {}", key);
         return "";
     }
     return it->second;
@@ -17,10 +20,12 @@ std::string SectionInfo::operator[](const std::string &key) const
 ConfigMgr::ConfigMgr()
 {
     const boost::filesystem::path config_path = boost::filesystem::current_path() / "config.json";
+    Log::info(LogModule::Config, "ConfigMgr loading config from {}", config_path.string());
 
     std::ifstream file(config_path.string());
     if (!file.is_open())
     {
+        Log::error(LogModule::Config, "ConfigMgr failed to open {}", config_path.string());
         return;
     }
 
@@ -30,6 +35,8 @@ ConfigMgr::ConfigMgr()
     // 解析失败
     if (!reader.parse(file, root))
     {
+        Log::error(LogModule::Config, "ConfigMgr failed to parse {}: {}", config_path.string(),
+                   reader.getFormattedErrorMessages());
         file.close();
         return;
     }
@@ -47,9 +54,16 @@ ConfigMgr::ConfigMgr()
             }
             _config_map[section_name] = section_info;
         }
+        else
+        {
+            Log::warn(LogModule::Config, "ConfigMgr section '{}' is not an object, skipped",
+                      section_name);
+        }
     }
 
     loadLogConfig();
+    Log::info(LogModule::Config, "loaded config from {} ({} sections)", config_path.string(),
+              _config_map.size());
 }
 
 namespace
@@ -100,10 +114,19 @@ void ConfigMgr::loadLogConfig()
     {
         _log_config._dir = dir;
     }
+    else
+    {
+        Log::warn(LogModule::Config, "loadLogConfig: Log.Dir not set, using default");
+    }
     const std::string level = section["Level"];
     if (!level.empty())
     {
         _log_config._level = parseLogLevel(level);
+        Log::info(LogModule::Config, "loadLogConfig: log level set to {}", level);
+    }
+    else
+    {
+        Log::warn(LogModule::Config, "loadLogConfig: Log.Level not set, using default 'info'");
     }
 }
 
@@ -122,6 +145,7 @@ SectionInfo ConfigMgr::operator[](const std::string &section) const
     auto it = _config_map.find(section);
     if (it == _config_map.end())
     {
+        Log::warn(LogModule::Config, "Config section not found: {}", section);
         return SectionInfo();
     }
     return it->second;

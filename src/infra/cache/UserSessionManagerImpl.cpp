@@ -1,6 +1,8 @@
 // UserSessionManagerImpl.cpp
 #include "UserSessionManagerImpl.h"
 #include "CSession.h"
+#include "Log.h"
+#include "LogModule.h"
 
 UserSessionManagerImpl::~UserSessionManagerImpl()
 {
@@ -23,10 +25,12 @@ void UserSessionManagerImpl::setUserSession(int uid, std::shared_ptr<CSession> s
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _uid_to_session[uid] = std::move(session);
+    LOGI(LogModule::Net, "session bound uid={} total={}", uid, _uid_to_session.size());
 }
 
 void UserSessionManagerImpl::removeUserSession(int uid)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _uid_to_session.erase(uid);
+    LOGI(LogModule::Net, "session unbound uid={} remaining={}", uid, _uid_to_session.size());
 }

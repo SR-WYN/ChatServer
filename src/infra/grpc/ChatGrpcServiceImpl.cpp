@@ -1,9 +1,12 @@
 // ChatGrpcServiceImpl.cpp
 #include "ChatGrpcServiceImpl.h"
 #include "CSession.h"
+#include "Log.h"
+#include "LogModule.h"
 #include "const.h"
 #include "message.pb.h"
 #include "utils.h"
+#include <chrono>
 #include <json/json.h>
 #include <json/reader.h>
 #include <memory>
@@ -21,6 +24,7 @@ Status ChatGrpcServiceImpl::NotifyAddFriend(ServerContext* context, const AddFri
                                             AddFriendRsp* reply)
 {
     (void)context;
+    const auto start = std::chrono::steady_clock::now();
     auto touid = request->touid();
     auto session = _session_manager->getSession(touid);
 
@@ -29,6 +33,9 @@ Status ChatGrpcServiceImpl::NotifyAddFriend(ServerContext* context, const AddFri
         reply->set_applyuid(request->applyuid());
         reply->set_touid(request->touid());
     });
+
+    LOGI(LogModule::Grpc, "NotifyAddFriend applyuid={} touid={} online={}", request->applyuid(),
+         touid, session != nullptr);
 
     if (session == nullptr)
     {
@@ -46,6 +53,12 @@ Status ChatGrpcServiceImpl::NotifyAddFriend(ServerContext* context, const AddFri
     notify["alias_name"] = request->alias_name();
     std::string return_str = notify.toStyledString();
     session->send(return_str, MSG_NOTIFY_ADDFRIEND_REQ);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Grpc, "NotifyAddFriend delivered applyuid={} touid={} cost={}ms",
+         request->applyuid(), touid, cost_ms);
     return Status::OK;
 }
 
@@ -53,6 +66,7 @@ Status ChatGrpcServiceImpl::NotifyAuthFriend(ServerContext* context, const AuthF
                                              AuthFriendRsp* reply)
 {
     (void)context;
+    const auto start = std::chrono::steady_clock::now();
     auto touid = request->touid();
     auto fromuid = request->fromuid();
     auto session = _session_manager->getSession(touid);
@@ -62,6 +76,9 @@ Status ChatGrpcServiceImpl::NotifyAuthFriend(ServerContext* context, const AuthF
         reply->set_fromuid(request->fromuid());
         reply->set_touid(request->touid());
     });
+
+    LOGI(LogModule::Grpc, "NotifyAuthFriend fromuid={} touid={} online={}", fromuid, touid,
+         session != nullptr);
 
     if (session == nullptr)
     {
@@ -91,6 +108,12 @@ Status ChatGrpcServiceImpl::NotifyAuthFriend(ServerContext* context, const AuthF
     }
     std::string return_str = return_value.toStyledString();
     session->send(return_str, MSG_NOTIFY_AUTH_FRIEND_REQ);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Grpc, "NotifyAuthFriend delivered fromuid={} touid={} error={} cost={}ms",
+         fromuid, touid, return_value["error"].asInt(), cost_ms);
     return Status::OK;
 }
 
@@ -99,10 +122,15 @@ Status ChatGrpcServiceImpl::NotifyTextChatMsg(ServerContext* context,
                                               TextChatMsgRsp* reply)
 {
     (void)context;
+    const auto start = std::chrono::steady_clock::now();
     auto touid = request->touid();
     auto session = _session_manager->getSession(touid);
     reply->set_error(ErrorCodes::SUCCESS);
     reply->set_recipient_online(session != nullptr);
+
+    LOGI(LogModule::Grpc,
+         "NotifyTextChatMsg fromuid={} touid={} msg_count={} local_online={}",
+         request->fromuid(), touid, request->textmsgs_size(), session != nullptr);
 
     if (session == nullptr)
     {
@@ -125,6 +153,12 @@ Status ChatGrpcServiceImpl::NotifyTextChatMsg(ServerContext* context,
     notify["text_array"] = text_array;
     std::string return_str = notify.toStyledString();
     session->send(return_str, MSG_NOTIFY_TEXT_CHAT_MSG_REQ);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Grpc, "NotifyTextChatMsg delivered fromuid={} touid={} cost={}ms",
+         request->fromuid(), touid, cost_ms);
     return Status::OK;
 }
 
@@ -133,9 +167,13 @@ Status ChatGrpcServiceImpl::NotifyImageChatMsg(ServerContext* context,
                                                ImageChatMsgRsp* reply)
 {
     (void)context;
+    const auto start = std::chrono::steady_clock::now();
     auto touid = request->touid();
     auto session = _session_manager->getSession(touid);
     reply->set_error(ErrorCodes::SUCCESS);
+
+    LOGI(LogModule::Grpc, "NotifyImageChatMsg fromuid={} touid={} image_count={} local_online={}",
+         request->fromuid(), touid, request->imagemsgs_size(), session != nullptr);
 
     if (session == nullptr)
     {
@@ -162,5 +200,11 @@ Status ChatGrpcServiceImpl::NotifyImageChatMsg(ServerContext* context,
     notify["image_array"] = image_array;
     std::string return_str = notify.toStyledString();
     session->send(return_str, MSG_NOTIFY_IMAGE_CHAT_MSG_REQ);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Grpc, "NotifyImageChatMsg delivered fromuid={} touid={} cost={}ms",
+         request->fromuid(), touid, cost_ms);
     return Status::OK;
 }

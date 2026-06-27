@@ -55,13 +55,16 @@ int main()
         LOGI(LogModule::App, "ChatServer starting");
 
         // ---- 1. 基础设施 ----
+        LOGI(LogModule::App, "initializing infrastructure");
         MySqlPool::initOnce();
         auto mysql_pool = MySqlPool::getInstancePtr();
         auto mysql_mgr = std::shared_ptr<MySqlMgr>(std::make_shared<MySqlMgrImpl>(mysql_pool));
+        LOGI(LogModule::App, "MySqlMgr initialized");
 
         auto status_client =
             std::shared_ptr<StatusGrpcClient>(std::make_shared<StatusGrpcClientImpl>());
         auto chat_client = std::shared_ptr<ChatGrpcClient>(std::make_shared<ChatGrpcClientImpl>());
+        LOGI(LogModule::App, "gRPC clients initialized");
 
         auto session_manager =
             std::shared_ptr<UserSessionManager>(std::make_shared<UserSessionManagerImpl>());
@@ -69,6 +72,7 @@ int main()
             std::shared_ptr<UserInfoCache>(std::make_shared<UserInfoCacheImpl>(mysql_mgr));
         auto route_cache =
             std::shared_ptr<UserNodeRouteCache>(std::make_shared<UserNodeRouteCacheImpl>());
+        LOGI(LogModule::App, "caches initialized");
 
         const auto &runtime_context = RuntimeContext::getInstance();
 
@@ -188,6 +192,7 @@ int main()
 
         // ---- 7. 启动 gRPC 服务 ----
         const std::string server_address = self.rpc_host + ":" + self.rpc_port;
+        LOGI(LogModule::App, "starting gRPC service on {}", server_address);
         ChatGrpcServiceImpl grpc_service(session_manager, user_info_cache, mysql_mgr);
         grpc::ServerBuilder builder;
         builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
@@ -201,6 +206,7 @@ int main()
         }
 
         // ---- 8. 启动 TCP 服务 ----
+        LOGI(LogModule::App, "starting TCP service on port {}", self.tcp_port);
         auto tcp_server =
             std::make_shared<CServer>(io_context, std::stoi(self.tcp_port), logic_system,
                                       status_client, route_cache, session_manager);

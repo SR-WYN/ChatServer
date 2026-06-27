@@ -1,5 +1,7 @@
 // UserInfoCacheImpl.cpp
 #include "UserInfoCacheImpl.h"
+#include "Log.h"
+#include "LogModule.h"
 #include "MySqlMgr.h"
 #include "const.h"
 
@@ -54,12 +56,15 @@ bool UserInfoCacheImpl::getByUid(int uid, std::shared_ptr<UserInfo> user_info)
 
     if (loadFromCache(uid, *user_info))
     {
+        LOGD(LogModule::User, "getByUid cache hit uid={}", uid);
         return true;
     }
 
+    LOGD(LogModule::User, "getByUid cache miss uid={}", uid);
     auto db_user = _mysql_mgr->getUserInfo(uid);
     if (!db_user)
     {
+        LOGW(LogModule::User, "getByUid: user not found in db uid={}", uid);
         return false;
     }
 
@@ -70,6 +75,8 @@ bool UserInfoCacheImpl::getByUid(int uid, std::shared_ptr<UserInfo> user_info)
     }
     user_info->alias_name.clear();
     writeCache(*user_info);
+    LOGI(LogModule::User, "getByUid loaded from db and cached uid={} name={}", uid,
+         user_info->name);
     return true;
 }
 
@@ -82,12 +89,15 @@ bool UserInfoCacheImpl::getByName(const std::string& name, std::shared_ptr<UserI
 
     if (loadFromCache(name, *user_info))
     {
+        LOGD(LogModule::User, "getByName cache hit name={}", name);
         return true;
     }
 
+    LOGD(LogModule::User, "getByName cache miss name={}", name);
     auto db_user = _mysql_mgr->getUserInfo(name);
     if (!db_user)
     {
+        LOGW(LogModule::User, "getByName: user not found in db name={}", name);
         return false;
     }
 
@@ -98,6 +108,8 @@ bool UserInfoCacheImpl::getByName(const std::string& name, std::shared_ptr<UserI
     }
     user_info->alias_name.clear();
     writeCache(*user_info);
+    LOGI(LogModule::User, "getByName loaded from db and cached uid={} name={}", user_info->uid,
+         name);
     return true;
 }
 
@@ -111,6 +123,7 @@ void UserInfoCacheImpl::fillSearchResultByUid(const std::string& uid_str, Json::
     }
     catch (...)
     {
+        LOGW(LogModule::User, "fillSearchResultByUid: invalid uid_str={}", uid_str);
         result["error"] = ErrorCodes::UID_INVALID;
         return;
     }
