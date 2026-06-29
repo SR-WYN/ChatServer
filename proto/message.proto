@@ -107,10 +107,12 @@ message BindUserToNodeRsp {
 
 message UnbindUserReq {
   int32 uid = 1;
+  string expected_node = 2;
 }
 
 message UnbindUserRsp {
   int32 error = 1;
+  bool skipped = 2;
 }
 
 message ValidateTokenReq {
@@ -142,6 +144,32 @@ message DeleteFileTokenRsp {
   int32 error = 1;
 }
 
+message KickUserReq {
+  int32 uid = 1;
+  string reason = 2;
+}
+
+message KickUserRsp {
+  int32 error = 1;
+  int32 uid = 2;
+}
+
+message RefreshTokenTTLReq {
+  int32 uid = 1;
+}
+
+message RefreshTokenTTLRsp {
+  int32 error = 1;
+}
+
+message LogoutReq {
+  int32 uid = 1;
+}
+
+message LogoutRsp {
+  int32 error = 1;
+}
+
 service StatusService {
   rpc GetChatServer (GetChatServerReq) returns (GetChatServerRsp);
   rpc Login(LoginReq) returns(LoginRsp);
@@ -155,6 +183,8 @@ service StatusService {
   rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenRsp);
   rpc GetFileServer(GetFileServerReq) returns (GetFileServerRsp);
   rpc DeleteFileToken(DeleteFileTokenReq) returns (DeleteFileTokenRsp);
+  rpc RefreshTokenTTL(RefreshTokenTTLReq) returns (RefreshTokenTTLRsp);
+  rpc Logout(LogoutReq) returns (LogoutRsp);
 }
 
 message AddFriendReq {
@@ -263,4 +293,5 @@ service ChatService {
   rpc NotifyAuthFriend(AuthFriendReq) returns(AuthFriendRsp);
   rpc NotifyTextChatMsg(TextChatMsgReq) returns(TextChatMsgRsp);
   rpc NotifyImageChatMsg(ImageChatMsgReq) returns(ImageChatMsgRsp);
+  rpc KickUser(KickUserReq) returns (KickUserRsp);
 }
