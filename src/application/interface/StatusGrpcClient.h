@@ -34,6 +34,9 @@ public:
     // Token 验证接口
     virtual int validateToken(int uid, const std::string& token) = 0;
 
+    // 刷新登录 token TTL
+    virtual bool refreshTokenTTL(int uid) = 0;
+
     // 获取可用的 FileServer 地址及临时 token
     virtual std::optional<FileServerInfo> getFileServer(int uid) = 0;
 

@@ -15,6 +15,8 @@ using message::AuthFriendRsp;
 using message::ChatService;
 using message::ImageChatMsgReq;
 using message::ImageChatMsgRsp;
+using message::KickUserReq;
+using message::KickUserRsp;
 using message::TextChatMsgReq;
 using message::TextChatMsgRsp;
 
@@ -36,6 +38,8 @@ public:
                              TextChatMsgRsp* reply) override;
     Status NotifyImageChatMsg(ServerContext* context, const ImageChatMsgReq* request,
                               ImageChatMsgRsp* reply) override;
+    Status KickUser(ServerContext* context, const KickUserReq* request,
+                    KickUserRsp* reply) override;
 
 private:
     std::shared_ptr<UserSessionManager> _session_manager;

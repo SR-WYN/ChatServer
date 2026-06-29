@@ -20,6 +20,8 @@ using message::GetUserNodeReq;
 using message::GetUserNodeRsp;
 using message::HeartbeatNodeReq;
 using message::HeartbeatNodeRsp;
+using message::RefreshTokenTTLReq;
+using message::RefreshTokenTTLRsp;
 using message::RegisterNodeReq;
 using message::RegisterNodeRsp;
 using message::UnbindUserReq;
@@ -281,6 +283,49 @@ int StatusGrpcClientImpl::validateToken(int uid, const std::string& token)
     LOGI(LogModule::Grpc, "validateToken uid={} token={} result={} cost={}ms", uid, token,
          reply.error(), cost_ms);
     return reply.error();
+}
+
+bool StatusGrpcClientImpl::refreshTokenTTL(int uid)
+{
+    const auto start = std::chrono::steady_clock::now();
+    ClientContext context;
+    RefreshTokenTTLReq request;
+    RefreshTokenTTLRsp reply;
+    request.set_uid(uid);
+
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        LOGE(LogModule::Grpc, "refreshTokenTTL: failed to get connection uid={}", uid);
+        return false;
+    }
+
+    Status status = stub->RefreshTokenTTL(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
+    if (!status.ok())
+    {
+        LOGE(LogModule::Grpc,
+             "refreshTokenTTL RPC failed uid={} code={} msg={} cost={}ms", uid,
+             static_cast<int>(status.error_code()), status.error_message(), cost_ms);
+        return false;
+    }
+
+    if (reply.error() != ErrorCodes::SUCCESS)
+    {
+        LOGW(LogModule::Grpc, "refreshTokenTTL failed uid={} err={} cost={}ms", uid,
+             reply.error(), cost_ms);
+        return false;
+    }
+
+    LOGI(LogModule::Grpc, "refreshTokenTTL success uid={} cost={}ms", uid, cost_ms);
+    return true;
 }
 
 std::optional<FileServerInfo> StatusGrpcClientImpl::getFileServer(int uid)

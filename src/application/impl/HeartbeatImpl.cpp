@@ -3,11 +3,27 @@
 #include "CServer.h"
 #include "CSession.h"
 #include "Log.h"
+#include "ThreadPoolMgr.h"
 #include "const.h"
 #include <chrono>
 #include <json/value.h>
 #include <json/writer.h>
 #include <vector>
+
+namespace
+{
+constexpr int TOKEN_TTL_SECONDS = 300;          // 与 StatusServer 一致
+constexpr int TOKEN_REFRESH_THRESHOLD_SECONDS = 100; // TTL 剩余不足 1/3 时刷新
+} // anonymous namespace
+
+HeartbeatImpl::HeartbeatImpl(std::shared_ptr<StatusGrpcClient> status_client,
+                             std::shared_ptr<UserSessionManager> session_manager,
+                             const RuntimeContext& runtime_context)
+    : _status_client(std::move(status_client)),
+      _session_manager(std::move(session_manager)),
+      _runtime_context(runtime_context)
+{
+}
 
 HeartbeatImpl::~HeartbeatImpl()
 {
@@ -40,10 +56,43 @@ void HeartbeatImpl::handlePing(std::shared_ptr<CSession> session, const std::str
     (void)msg_data;
     touchSessionActivity(session);
 
+    int uid = session->getUserId();
+    if (uid > 0 && _status_client && shouldRefreshTokenTTL(uid))
+    {
+        // 异步刷新 token TTL，避免阻塞心跳响应
+        auto client = _status_client;
+        ThreadPoolMgr::getInstance().enqueueGrpcClient([client, uid]() {
+            if (!client->refreshTokenTTL(uid))
+            {
+                LOGW(LogModule::Net, "heartbeat refreshTokenTTL failed uid={}", uid);
+            }
+        });
+    }
+
     Json::Value rsp;
     rsp["error"] = ErrorCodes::SUCCESS;
     Json::FastWriter writer;
     session->send(writer.write(rsp), MSG_HEARTBEAT_PONG);
+}
+
+bool HeartbeatImpl::shouldRefreshTokenTTL(int uid)
+{
+    std::lock_guard<std::mutex> lock(_ttl_refresh_mutex);
+    auto now = std::chrono::steady_clock::now();
+    auto it = _last_ttl_refresh.find(uid);
+    if (it == _last_ttl_refresh.end())
+    {
+        _last_ttl_refresh[uid] = now;
+        return true;
+    }
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - it->second).count();
+    if (elapsed >= TOKEN_REFRESH_THRESHOLD_SECONDS)
+    {
+        it->second = now;
+        return true;
+    }
+    return false;
 }
 
 void HeartbeatImpl::touchSessionActivity(const std::shared_ptr<CSession>& session)

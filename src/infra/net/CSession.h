@@ -37,6 +37,9 @@ public:
     void send(const char* msg, short body_len, short msgid);
     void send(std::string msg, short msgid);
     void close();
+    void closeAfterSend();
+    void setKicked(bool kicked);
+    bool isKicked() const;
     void touchActivity();
     std::chrono::milliseconds appIdleAge() const;
 
@@ -50,6 +53,7 @@ private:
     char _data[MAX_LENGTH];
     std::shared_ptr<CServer> _server;
     bool _b_close;
+    std::atomic<bool> _kicked{false};
     std::queue<std::shared_ptr<SendNode>> _send_que;
     std::mutex _send_lock;
     std::shared_ptr<RecvNode> _recv_msg_node;

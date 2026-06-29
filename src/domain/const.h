@@ -53,6 +53,7 @@ enum MSG_IDS
     MSG_IMAGE_CHAT_MSG_REQ = 2019,        // 图片聊天消息请求
     MSG_IMAGE_CHAT_MSG_RSP = 2020,        // 图片聊天消息响应
     MSG_NOTIFY_IMAGE_CHAT_MSG_REQ = 2021, // 通知图片聊天消息
+    MSG_KICK_NOTIFY = 2022,              // 被踢通知
     MSG_HEARTBEAT_PING = 3001,           // 心跳 ping
     MSG_HEARTBEAT_PONG = 3002,           // 心跳 pong
 };

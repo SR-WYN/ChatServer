@@ -238,6 +238,13 @@ void CSession::handleWrite(const boost::system::error_code& ec,
                         handleWrite(ec, self);
                     });
             }
+            else if (isKicked())
+            {
+                // kick 通知已发送完毕，立即关闭连接
+                // 注意：close 不会操作 _send_que，不竞争 _send_lock
+                close();
+                _server->ClearSession(_session_id);
+            }
         }
         else
         {
@@ -252,6 +259,45 @@ void CSession::handleWrite(const boost::system::error_code& ec,
     }
 }
 
+void CSession::setKicked(bool kicked)
+{
+    _kicked.store(kicked, std::memory_order_relaxed);
+}
+
+bool CSession::isKicked() const
+{
+    return _kicked.load(std::memory_order_relaxed);
+}
+
+void CSession::closeAfterSend()
+{
+    if (_b_close || isKicked())
+    {
+        return;
+    }
+
+    setKicked(true);
+
+    // 发送踢人通知
+    Json::Value notify;
+    notify["error"] = ErrorCodes::SUCCESS;
+    notify["reason"] = "kicked_by_new_login";
+    std::string return_str = notify.toStyledString();
+    send(return_str, MSG_KICK_NOTIFY);
+
+    // 500ms 兜底定时器：无论通知是否发送成功都关闭连接
+    auto self = shared_from_this();
+    auto timer = std::make_shared<boost::asio::steady_timer>(_socket.get_executor());
+    timer->expires_after(std::chrono::milliseconds(500));
+    timer->async_wait([self, timer](const boost::system::error_code& ec) {
+        if (ec)
+        {
+            return;
+        }
+        self->close();
+    });
+}
+
 void CSession::close()
 {
     if (_b_close)
@@ -261,7 +307,16 @@ void CSession::close()
 
     if (_user_uid > 0)
     {
-        _status_client->unbindUser(_user_uid);
+        // 被踢时不需要再解绑，因为 StatusServer 已经清理过绑定关系
+        if (!isKicked())
+        {
+            _status_client->unbindUser(_user_uid);
+        }
+        else
+        {
+            LOGI(LogModule::Net, "session closed by kick, skip unbind uid={}, session={}",
+                 _user_uid, _session_id);
+        }
 
         if (_route_cache)
         {

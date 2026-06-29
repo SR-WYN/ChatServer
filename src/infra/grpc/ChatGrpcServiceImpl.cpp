@@ -3,6 +3,7 @@
 #include "CSession.h"
 #include "Log.h"
 #include "LogModule.h"
+#include "UserSessionManager.h"
 #include "const.h"
 #include "message.pb.h"
 #include "utils.h"
@@ -206,5 +207,38 @@ Status ChatGrpcServiceImpl::NotifyImageChatMsg(ServerContext* context,
                              .count();
     LOGI(LogModule::Grpc, "NotifyImageChatMsg delivered fromuid={} touid={} cost={}ms",
          request->fromuid(), touid, cost_ms);
+    return Status::OK;
+}
+
+Status ChatGrpcServiceImpl::KickUser(ServerContext* context, const KickUserReq* request,
+                                     KickUserRsp* reply)
+{
+    (void)context;
+    const auto start = std::chrono::steady_clock::now();
+    int uid = request->uid();
+    reply->set_error(ErrorCodes::SUCCESS);
+
+    LOGI(LogModule::Grpc, "KickUser uid={} reason={}", uid, request->reason());
+
+    if (uid <= 0)
+    {
+        LOGW(LogModule::Grpc, "KickUser: invalid uid={}", uid);
+        return Status::OK;
+    }
+
+    auto session = _session_manager->getSession(uid);
+    if (session == nullptr)
+    {
+        LOGI(LogModule::Grpc, "KickUser: user not online uid={}", uid);
+        return Status::OK;
+    }
+
+    // 发送踢人通知后关闭连接
+    session->closeAfterSend();
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Grpc, "KickUser delivered uid={} cost={}ms", uid, cost_ms);
     return Status::OK;
 }

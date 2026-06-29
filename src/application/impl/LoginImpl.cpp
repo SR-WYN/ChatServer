@@ -80,6 +80,15 @@ void LoginImpl::handle(std::shared_ptr<CSession> session, const std::string& msg
     LOGI(LogModule::Login, "token validated session={} uid={}", session_id, uid);
     return_value["error"] = ErrorCodes::SUCCESS;
 
+    // 若同一用户在本节点已有旧 session，先关闭它（避免同节点重复登录）
+    auto old_session = _session_manager->getSession(uid);
+    if (old_session && old_session->getSessionId() != session_id)
+    {
+        LOGI(LogModule::Login, "closing old local session uid={} old_session={} new_session={}",
+             uid, old_session->getSessionId(), session_id);
+        old_session->close();
+    }
+
     auto user_info = std::make_shared<UserInfo>();
     bool b_base = _user_info_cache->getByUid(uid, user_info);
     if (!b_base)

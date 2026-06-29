@@ -128,7 +128,8 @@ int main()
             runtime_context));
         auto file_transfer = std::shared_ptr<FileTransfer>(
             std::make_shared<FileTransferImpl>(status_client));
-        auto heartbeat = std::shared_ptr<Heartbeat>(std::make_shared<HeartbeatImpl>());
+        auto heartbeat = std::shared_ptr<Heartbeat>(
+            std::make_shared<HeartbeatImpl>(status_client, session_manager, runtime_context));
 
         // ---- 5. 消息路由器 ----
         auto logic_system = std::shared_ptr<LogicSystem>(
