@@ -4,8 +4,6 @@ add_library(cs_base STATIC
     ThreadPool.cpp
     ThreadPoolMgr.h
     ThreadPoolMgr.cpp
-    utils.h
-    utils.cpp
     SnowflakeIdGenerator.h
     SnowflakeIdGenerator.cpp
 )

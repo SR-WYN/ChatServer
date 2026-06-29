@@ -5,6 +5,8 @@ set_source_files_properties(${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 add_library(chatserver_includes INTERFACE)
 
 target_include_directories(chatserver_includes INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/application/interface
     ${CMAKE_CURRENT_SOURCE_DIR}/application/impl
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
@@ -26,6 +28,7 @@ target_link_libraries(chatserver_includes INTERFACE
     spdlog::spdlog
 )
 
+add_subdirectory(common)
 add_subdirectory(infra/base)
 add_subdirectory(infra/config)
 add_subdirectory(infra/cache)
@@ -56,6 +59,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE
     chatserver_includes
     cs_app
+    common
     cs_base
     cs_cache
     cs_config
