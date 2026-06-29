@@ -3,7 +3,7 @@
 #include "Log.h"
 #include "LogModule.h"
 #include "MySqlPool.h"
-#include "utils.h"
+#include "defer.h"
 #include <chrono>
 #include <cppconn/exception.h>
 #include <cppconn/prepared_statement.h>

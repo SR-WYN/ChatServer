@@ -2,7 +2,7 @@
 #pragma once
 
 #include "IdGenerator.h"
-#include "utils.h"
+#include "snowflake_id.h"
 #include <memory>
 
 class SnowflakeIdGenerator final : public IdGenerator

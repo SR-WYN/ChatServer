@@ -45,7 +45,7 @@ RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
         return std::nullopt;
     }
 
-    const std::string instance_uid = utils::makeInstanceUid();
+    const std::string instance_uid = utils::env::makeInstanceUid();
 
     Log::info(LogModule::Config, "forEachSlot: slots=[{}] uid={}", slots_csv, instance_uid);
 
@@ -82,13 +82,13 @@ RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
         }
 
         // 端口已被占用则跳过
-        if (!utils::isPortAvailable("0.0.0.0", tcp_port))
+        if (!utils::env::isPortAvailable("0.0.0.0", tcp_port))
         {
             Log::warn(LogModule::Config, "forEachSlot: slot={} tcp port {} unavailable", slot_key,
                       tcp_port);
             continue;
         }
-        if (!utils::isPortAvailable("0.0.0.0", rpc_port))
+        if (!utils::env::isPortAvailable("0.0.0.0", rpc_port))
         {
             Log::warn(LogModule::Config, "forEachSlot: slot={} rpc port {} unavailable", slot_key,
                       rpc_port);

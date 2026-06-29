@@ -9,6 +9,7 @@ add_library(cs_config STATIC
 
 target_link_libraries(cs_config PUBLIC
     chatserver_includes
+    common
     cs_grpc
     cs_log
 )

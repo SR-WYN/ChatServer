@@ -37,7 +37,7 @@
 #include "UserSessionManager.h"
 #include "UserSessionManagerImpl.h"
 #include "const.h"
-#include "utils.h"
+
 #include <csignal>
 #include <grpcpp/grpcpp.h>
 

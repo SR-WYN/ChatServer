@@ -10,5 +10,6 @@ add_library(cs_base STATIC
 
 target_link_libraries(cs_base PUBLIC
     chatserver_includes
+    common
     spdlog::spdlog
 )
