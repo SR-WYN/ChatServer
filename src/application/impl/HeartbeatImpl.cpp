@@ -4,17 +4,12 @@
 #include "CSession.h"
 #include "Log.h"
 #include "ThreadPoolMgr.h"
+#include "business_constants.h"
 #include "const.h"
 #include <chrono>
 #include <json/value.h>
 #include <json/writer.h>
 #include <vector>
-
-namespace
-{
-constexpr int TOKEN_TTL_SECONDS = 300;          // 与 StatusServer 一致
-constexpr int TOKEN_REFRESH_THRESHOLD_SECONDS = 100; // TTL 剩余不足 1/3 时刷新
-} // anonymous namespace
 
 HeartbeatImpl::HeartbeatImpl(std::shared_ptr<StatusGrpcClient> status_client,
                              std::shared_ptr<UserSessionManager> session_manager,
@@ -87,7 +82,7 @@ bool HeartbeatImpl::shouldRefreshTokenTTL(int uid)
     }
 
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - it->second).count();
-    if (elapsed >= TOKEN_REFRESH_THRESHOLD_SECONDS)
+    if (elapsed >= constants::business::kTokenRefreshThresholdSeconds)
     {
         it->second = now;
         return true;

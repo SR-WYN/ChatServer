@@ -4,6 +4,7 @@
 
 #include "LRUCache.h"
 #include "UserNodeRouteCache.h"
+#include "business_constants.h"
 #include <chrono>
 
 struct RouteEntry
@@ -20,12 +21,11 @@ public:
     ~UserNodeRouteCacheImpl() override = default;
 
     std::optional<UserNodeLocation> get(int uid) override;
-    void put(int uid, const UserNodeLocation& loc, int ttl_seconds = DEFAULT_TTL) override;
+    void put(int uid, const UserNodeLocation& loc,
+             int ttl_seconds = constants::business::kRouteCacheDefaultTtlSeconds) override;
     void invalidate(int uid) override;
 
 private:
     // uid -> RouteEntry 路由缓存（LRU，默认容量 10000）
     LRUCache<int, RouteEntry> _cache;
-
-    static constexpr int DEFAULT_TTL = 60;          // 默认 60 秒过期
 };

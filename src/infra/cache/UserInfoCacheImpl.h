@@ -3,6 +3,7 @@
 
 #include "LRUCache.h"
 #include "UserInfoCache.h"
+#include "business_constants.h"
 #include "data.h"
 #include <memory>
 #include <mutex>
@@ -28,9 +29,7 @@ private:
     void fillUserJson(const UserInfo& info, Json::Value& result);
 
     std::shared_ptr<MySqlMgr> _mysql_mgr;
-    LRUCache<int, UserInfo> _uid_cache;
+    LRUCache<int, UserInfo> _uid_cache{constants::business::kUserInfoCacheCapacity};
     std::mutex _name_mutex;
     std::unordered_map<std::string, int> _name_index;
-
-    static constexpr size_t CACHE_CAPACITY = 10000;
 };

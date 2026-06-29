@@ -7,6 +7,7 @@ add_library(chatserver_includes INTERFACE)
 target_include_directories(chatserver_includes INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/common/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/constants
     ${CMAKE_CURRENT_SOURCE_DIR}/application/interface
     ${CMAKE_CURRENT_SOURCE_DIR}/application/impl
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
