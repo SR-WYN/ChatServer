@@ -104,15 +104,34 @@ int main()
 
         // 节点心跳 → 线程池管理
         ThreadPoolMgr::getInstance().runNodeHeartbeat([client = status_client]() {
+            LOGI(LogModule::Net, "node heartbeat thread started");
+            int fail_count = 0;
             while (client && RuntimeContext::getInstance().isInitialized())
             {
                 const auto &nodeInfo = RuntimeContext::getInstance().getNodeInfo();
-                client->heartbeatNode(nodeInfo.name, nodeInfo.instance_uid);
-                for (int i = 0; i < 100; ++i)
+                if (client->heartbeatNode(nodeInfo.name, nodeInfo.instance_uid))
+                {
+                    if (fail_count > 0)
+                    {
+                        LOGI(LogModule::Net, "node heartbeat recovered name={} instance={}",
+                             nodeInfo.name, nodeInfo.instance_uid);
+                        fail_count = 0;
+                    }
+                }
+                else
+                {
+                    ++fail_count;
+                    LOGW(LogModule::Net, "node heartbeat failed name={} instance={} fail_count={}",
+                         nodeInfo.name, nodeInfo.instance_uid, fail_count);
+                }
+
+                for (int i = 0; i < 100 && client && RuntimeContext::getInstance().isInitialized(); ++i)
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
+            LOGI(LogModule::Net, "node heartbeat thread stopped, initialized={}",
+                 RuntimeContext::getInstance().isInitialized());
         });
 
         // ---- 4. 应用层 ----
