@@ -125,7 +125,7 @@ RuntimeContext::forEachSlot(const std::function<bool(const NodeInfo &)> &accept)
 void RuntimeContext::setNodeInfo(const NodeInfo &node)
 {
     _self_info = node;
-    _is_initialized = true;
+    _is_initialized.store(true, std::memory_order_release);
     Log::info(LogModule::Config, "setNodeInfo: slot={} name={} uid={}", node.slot_key, node.name,
               node.instance_uid);
 }
@@ -139,5 +139,5 @@ const NodeInfo &RuntimeContext::getNodeInfo() const
 // 当前节点是否已初始化
 bool RuntimeContext::isInitialized() const
 {
-    return _is_initialized;
+    return _is_initialized.load(std::memory_order_acquire);
 }

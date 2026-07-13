@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Singleton.h"
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -53,5 +54,5 @@ private:
     static std::optional<NodeInfo> forEachSlot(const std::function<bool(const NodeInfo &)> &accept);
 
     NodeInfo _self_info;
-    bool _is_initialized = false;
+    std::atomic<bool> _is_initialized{false};
 };
