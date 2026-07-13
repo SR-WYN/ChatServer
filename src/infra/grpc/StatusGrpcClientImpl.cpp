@@ -115,6 +115,9 @@ bool StatusGrpcClientImpl::unregisterNode(const NodeInfo& node)
 bool StatusGrpcClientImpl::heartbeatNode(const std::string& name, const std::string& instance_id)
 {
     ClientContext context;
+    const auto deadline = std::chrono::system_clock::now() + std::chrono::seconds(3);
+    context.set_deadline(deadline);
+
     HeartbeatNodeReq request;
     HeartbeatNodeRsp reply;
     request.set_name(name);
