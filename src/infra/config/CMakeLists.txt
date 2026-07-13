@@ -3,8 +3,6 @@ add_library(cs_config STATIC
     ConfigMgr.cpp
     RuntimeContext.h
     RuntimeContext.cpp
-    NodeHeartbeat.h
-    NodeHeartbeat.cpp
 )
 
 target_link_libraries(cs_config PUBLIC
