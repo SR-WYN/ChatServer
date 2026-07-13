@@ -1,7 +1,9 @@
 // utils.cpp - 通用工具集合实现
 #include "utils.h"
 #include "Log.h"
+#include <algorithm>
 #include <boost/asio.hpp>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
@@ -161,3 +163,57 @@ std::string makeInstanceUid()
 }
 
 } // namespace utils::env
+
+namespace utils::log
+{
+
+spdlog::level::level_enum parseLevel(const std::string &level_str)
+{
+    std::string level = level_str;
+    std::transform(level.begin(), level.end(), level.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (level == "trace")
+    {
+        return spdlog::level::trace;
+    }
+    if (level == "debug")
+    {
+        return spdlog::level::debug;
+    }
+    if (level == "info")
+    {
+        return spdlog::level::info;
+    }
+    if (level == "warn" || level == "warning")
+    {
+        return spdlog::level::warn;
+    }
+    if (level == "error" || level == "err")
+    {
+        return spdlog::level::err;
+    }
+    if (level == "critical" || level == "fatal")
+    {
+        return spdlog::level::critical;
+    }
+    if (level == "off")
+    {
+        return spdlog::level::off;
+    }
+    return spdlog::level::info;
+}
+
+} // namespace utils::log
+
+namespace utils::time
+{
+
+std::uint64_t steadyMs()
+{
+    return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                          std::chrono::steady_clock::now().time_since_epoch())
+                                          .count());
+}
+
+} // namespace utils::time

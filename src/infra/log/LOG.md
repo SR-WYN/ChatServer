@@ -88,7 +88,7 @@ LOGE(LogModule::Chat, "deliver failed from={} to={}", from, to);
 
 ### 4.3 新增模块
 
-新增模块：在 [`LogModule.h`](LogModule.h) 里按顺序增加 `LogModule` 枚举项、`LogNames` 里同名 `_snake_case` 字符串常量，并加入 `LogNames::_table`；**不要**在业务里写字符串模块名。
+新增模块：在 [`LogModule.h`](LogModule.h) 里按顺序增加 `LogModule` 枚举项，并在 `moduleName()` 的 switch 分支里返回对应的小写模块名；**不要**在业务里写字符串模块名。
 
 命名约定：成员变量 `_snake_case`；成员函数小写驼峰（`init`、`createModuleLogger`、`moduleName`）。
 
@@ -96,7 +96,7 @@ LOGE(LogModule::Chat, "deliver failed from={} to={}", from, to);
 
 | 文件 | 作用 |
 |------|------|
-| `LogModule.h` | 模块枚举 + `LogNames` 常量 + `moduleName()` |
+| `LogModule.h` | 模块枚举 + `moduleName()` |
 | `Log.h` / `Log.cpp` | 写日志 API 与文件 sink |
 | `LOG.md` | 本文档 |
 

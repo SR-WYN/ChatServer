@@ -10,6 +10,7 @@
 #include "UserNodeRouteCache.h"
 #include "UserSessionManager.h"
 #include "const.h"
+#include "utils.h"
 
 #include <boost/asio.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -23,16 +24,6 @@
 #include <limits>
 #include <memory>
 #include <mutex>
-
-namespace
-{
-std::uint64_t steady_ms()
-{
-    return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                          std::chrono::steady_clock::now().time_since_epoch())
-                                          .count());
-}
-} // namespace
 
 CSession::CSession(boost::asio::io_context& io_context, std::shared_ptr<CServer> server,
                    std::shared_ptr<LogicSystem> logic_system,
@@ -78,12 +69,12 @@ int CSession::getUserId()
 
 void CSession::touchActivity()
 {
-    _last_activity_ms.store(steady_ms(), std::memory_order_relaxed);
+    _last_activity_ms.store(utils::time::steadyMs(), std::memory_order_relaxed);
 }
 
 std::chrono::milliseconds CSession::appIdleAge() const
 {
-    const std::uint64_t now = steady_ms();
+    const std::uint64_t now = utils::time::steadyMs();
     const std::uint64_t last = _last_activity_ms.load(std::memory_order_relaxed);
     if (last == 0 || now < last)
     {

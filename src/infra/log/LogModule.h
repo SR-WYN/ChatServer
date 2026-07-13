@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-#include <cstddef>
 #include <string_view>
 
 enum class LogModule
@@ -19,26 +17,32 @@ enum class LogModule
     Chat,
 };
 
-namespace LogNames
-{
-inline constexpr std::string_view _app = "app";
-inline constexpr std::string_view _config = "config";
-inline constexpr std::string_view _net = "net";
-inline constexpr std::string_view _mysql = "mysql";
-inline constexpr std::string_view _redis = "redis";
-inline constexpr std::string_view _grpc = "grpc";
-inline constexpr std::string_view _logic = "logic";
-inline constexpr std::string_view _login = "login";
-inline constexpr std::string_view _user = "user";
-inline constexpr std::string_view _friend = "friend";
-inline constexpr std::string_view _chat = "chat";
-
-inline constexpr std::array<std::string_view, 11> _table = {
-    _app, _config, _net, _mysql, _redis, _grpc, _logic, _login, _user, _friend, _chat,
-};
-} // namespace LogNames
-
 inline std::string_view moduleName(LogModule module)
 {
-    return LogNames::_table[static_cast<std::size_t>(module)];
+    switch (module)
+    {
+    case LogModule::App:
+        return "app";
+    case LogModule::Config:
+        return "config";
+    case LogModule::Net:
+        return "net";
+    case LogModule::Mysql:
+        return "mysql";
+    case LogModule::Redis:
+        return "redis";
+    case LogModule::Grpc:
+        return "grpc";
+    case LogModule::Logic:
+        return "logic";
+    case LogModule::Login:
+        return "login";
+    case LogModule::User:
+        return "user";
+    case LogModule::Friend:
+        return "friend";
+    case LogModule::Chat:
+        return "chat";
+    }
+    return "unknown";
 }
