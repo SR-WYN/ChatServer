@@ -37,6 +37,9 @@ public:
     // 刷新登录 token TTL
     virtual bool refreshTokenTTL(int uid) = 0;
 
+    // 通知 StatusServer 用户重新上线，由 StatusServer 转发给 GateServer 刷新 session TTL
+    virtual bool notifyUserOnline(int uid) = 0;
+
     // 获取可用的 FileServer 地址及临时 token
     virtual std::optional<FileServerInfo> getFileServer(int uid) = 0;
 

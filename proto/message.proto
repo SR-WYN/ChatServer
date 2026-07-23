@@ -168,6 +168,14 @@ message LogoutRsp {
   int32 error = 1;
 }
 
+message UserOnlineReq {
+  int32 uid = 1;
+}
+
+message UserOnlineRsp {
+  int32 error = 1;
+}
+
 service StatusService {
   rpc GetChatServer (GetChatServerReq) returns (GetChatServerRsp);
   rpc Login(LoginReq) returns(LoginRsp);
@@ -183,6 +191,7 @@ service StatusService {
   rpc DeleteFileToken(DeleteFileTokenReq) returns (DeleteFileTokenRsp);
   rpc RefreshTokenTTL(RefreshTokenTTLReq) returns (RefreshTokenTTLRsp);
   rpc Logout(LogoutReq) returns (LogoutRsp);
+  rpc NotifyUserOnline(UserOnlineReq) returns (UserOnlineRsp);
 }
 
 message AddFriendReq {

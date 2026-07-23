@@ -80,13 +80,26 @@ void LoginImpl::handle(std::shared_ptr<CSession> session, const std::string& msg
     LOGI(LogModule::Login, "token validated session={} uid={}", session_id, uid);
     return_value["error"] = ErrorCodes::SUCCESS;
 
-    // 若同一用户在本节点已有旧 session，先关闭它（避免同节点重复登录）
+    // 若同一用户在本节点已有旧 session，区分重连与新设备登录
     auto old_session = _session_manager->getSession(uid);
-    if (old_session && old_session->getSessionId() != session_id)
+    bool is_reconnect = false;
+    if (old_session && old_session->getSessionId() != session_id && !old_session->isKicked())
     {
-        LOGI(LogModule::Login, "closing old local session uid={} old_session={} new_session={}",
-             uid, old_session->getSessionId(), session_id);
-        old_session->close();
+        if (old_session->loginToken() == token)
+        {
+            LOGI(LogModule::Login,
+                 "reconnect: replacing old local session uid={} old_session={} new_session={}",
+                 uid, old_session->getSessionId(), session_id);
+            old_session->closeForReconnect();
+            is_reconnect = true;
+        }
+        else
+        {
+            LOGI(LogModule::Login,
+                 "new login: closing old local session uid={} old_session={} new_session={}",
+                 uid, old_session->getSessionId(), session_id);
+            old_session->close();
+        }
     }
 
     auto user_info = std::make_shared<UserInfo>();
@@ -159,7 +172,21 @@ void LoginImpl::handle(std::shared_ptr<CSession> session, const std::string& msg
     }
 
     session->setUserId(uid);
+    session->setLoginToken(token);
     _session_manager->setUserSession(uid, session);
+
+    // 刷新登录 token TTL
+    if (!_status_client->refreshTokenTTL(uid))
+    {
+        LOGW(LogModule::Login, "refreshTokenTTL failed uid={}", uid);
+    }
+
+    // 重连成功后通知 GateServer 刷新 HTTP session TTL
+    if (is_reconnect)
+    {
+        _status_client->notifyUserOnline(uid);
+    }
+
     login_rsp_sent = true;
 
     std::string return_str = return_value.toStyledString();

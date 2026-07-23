@@ -44,7 +44,7 @@ enum MSG_IDS
 };
 
 // 应用层无消息超过该秒数则关闭连接（建议 >= 客户端 3×Ping 间隔）
-constexpr int SESSION_APP_IDLE_SECONDS = 120;
+constexpr int SESSION_APP_IDLE_SECONDS = 90;
 // 空闲连接扫描周期（秒）
 constexpr int IDLE_SWEEP_INTERVAL_SECONDS = 10;
 

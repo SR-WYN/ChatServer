@@ -260,6 +260,16 @@ bool CSession::isKicked() const
     return _kicked.load(std::memory_order_relaxed);
 }
 
+void CSession::setLoginToken(const std::string& token)
+{
+    _login_token = token;
+}
+
+const std::string& CSession::loginToken() const
+{
+    return _login_token;
+}
+
 void CSession::closeAfterSend()
 {
     if (_b_close || isKicked())
@@ -291,6 +301,16 @@ void CSession::closeAfterSend()
 
 void CSession::close()
 {
+    closeImpl(/*unbind=*/true);
+}
+
+void CSession::closeForReconnect()
+{
+    closeImpl(/*unbind=*/false);
+}
+
+void CSession::closeImpl(bool unbind)
+{
     if (_b_close)
     {
         return;
@@ -299,14 +319,16 @@ void CSession::close()
     if (_user_uid > 0)
     {
         // 被踢时不需要再解绑，因为 StatusServer 已经清理过绑定关系
-        if (!isKicked())
+        // 重连时由新连接接管，也不解绑，避免 GateServer 收到离线通知
+        if (unbind && !isKicked())
         {
             _status_client->unbindUser(_user_uid);
         }
         else
         {
-            LOGI(LogModule::Net, "session closed by kick, skip unbind uid={}, session={}",
-                 _user_uid, _session_id);
+            LOGI(LogModule::Net,
+                 "session closed without unbind uid={}, session={}, unbind={}, kicked={}",
+                 _user_uid, _session_id, unbind, isKicked());
         }
 
         if (_route_cache)

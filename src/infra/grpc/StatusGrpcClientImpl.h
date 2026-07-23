@@ -20,6 +20,7 @@ public:
     bool unbindUser(int uid) override;
     int validateToken(int uid, const std::string& token) override;
     bool refreshTokenTTL(int uid) override;
+    bool notifyUserOnline(int uid) override;
     std::optional<FileServerInfo> getFileServer(int uid) override;
     bool deleteFileToken(int uid) override;
 

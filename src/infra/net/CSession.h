@@ -37,14 +37,18 @@ public:
     void send(const char* msg, short body_len, short msgid);
     void send(std::string msg, short msgid);
     void close();
+    void closeForReconnect();
     void closeAfterSend();
     void setKicked(bool kicked);
     bool isKicked() const;
+    void setLoginToken(const std::string& token);
+    const std::string& loginToken() const;
     void touchActivity();
     std::chrono::milliseconds appIdleAge() const;
 
 private:
     void asyncReadHead();
+    void closeImpl(bool unbind);
     void asyncReadBody(int body_len);
     void handleWrite(const boost::system::error_code& error, std::shared_ptr<CSession> shared_self);
 
@@ -61,6 +65,7 @@ private:
     std::shared_ptr<MsgNode> _recv_head_node;
     int _user_uid;
     std::atomic<std::uint64_t> _last_activity_ms{0};
+    std::string _login_token;
 
     std::shared_ptr<LogicSystem> _logic_system;
     std::shared_ptr<StatusGrpcClient> _status_client;

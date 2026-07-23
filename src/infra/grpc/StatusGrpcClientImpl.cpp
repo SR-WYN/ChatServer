@@ -28,6 +28,8 @@ using message::UnbindUserReq;
 using message::UnbindUserRsp;
 using message::UnregisterNodeReq;
 using message::UnregisterNodeRsp;
+using message::UserOnlineReq;
+using message::UserOnlineRsp;
 using message::ValidateTokenReq;
 using message::ValidateTokenRsp;
 
@@ -328,6 +330,49 @@ bool StatusGrpcClientImpl::refreshTokenTTL(int uid)
     }
 
     LOGI(LogModule::Grpc, "refreshTokenTTL success uid={} cost={}ms", uid, cost_ms);
+    return true;
+}
+
+bool StatusGrpcClientImpl::notifyUserOnline(int uid)
+{
+    const auto start = std::chrono::steady_clock::now();
+    ClientContext context;
+    UserOnlineReq request;
+    UserOnlineRsp reply;
+    request.set_uid(uid);
+
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        LOGE(LogModule::Grpc, "notifyUserOnline: failed to get connection uid={}", uid);
+        return false;
+    }
+
+    Status status = stub->NotifyUserOnline(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
+    if (!status.ok())
+    {
+        LOGE(LogModule::Grpc,
+             "notifyUserOnline RPC failed uid={} code={} msg={} cost={}ms", uid,
+             static_cast<int>(status.error_code()), status.error_message(), cost_ms);
+        return false;
+    }
+
+    if (reply.error() != ErrorCodes::SUCCESS)
+    {
+        LOGW(LogModule::Grpc, "notifyUserOnline failed uid={} err={} cost={}ms", uid,
+             reply.error(), cost_ms);
+        return false;
+    }
+
+    LOGI(LogModule::Grpc, "notifyUserOnline success uid={} cost={}ms", uid, cost_ms);
     return true;
 }
 
