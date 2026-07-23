@@ -39,8 +39,38 @@ void LoginImpl::handle(std::shared_ptr<CSession> session, const std::string& msg
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
-    auto uid = root["uid"].asInt();
+
+    // 支持 token-only 登录：优先取 token；uid 可由客户端传入，也可由 StatusServer 解析
     auto token = root["token"].asString();
+    if (token.empty())
+    {
+        LOGW(LogModule::Login, "login rejected: empty token session={}", session_id);
+        Json::Value return_value;
+        return_value["error"] = ErrorCodes::TOKEN_INVALID;
+        session->send(return_value.toStyledString(), MSG_CHAT_LOGIN_RSP);
+        return;
+    }
+
+    int uid = 0;
+    if (root.isMember("uid"))
+    {
+        uid = root["uid"].asInt();
+    }
+
+    if (uid <= 0)
+    {
+        uid = _status_client->resolveToken(token);
+    }
+
+    if (uid <= 0)
+    {
+        LOGW(LogModule::Login, "login rejected: failed to resolve uid from token session={}",
+             session_id);
+        Json::Value return_value;
+        return_value["error"] = ErrorCodes::TOKEN_INVALID;
+        session->send(return_value.toStyledString(), MSG_CHAT_LOGIN_RSP);
+        return;
+    }
 
     LOGI(LogModule::Login, "handle chat login session={} uid={} token={}", session_id, uid, token);
 

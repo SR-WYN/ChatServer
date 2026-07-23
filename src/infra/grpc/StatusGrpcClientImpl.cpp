@@ -28,6 +28,8 @@ using message::UnbindUserReq;
 using message::UnbindUserRsp;
 using message::UnregisterNodeReq;
 using message::UnregisterNodeRsp;
+using message::ResolveTokenReq;
+using message::ResolveTokenRsp;
 using message::UserOnlineReq;
 using message::UserOnlineRsp;
 using message::ValidateTokenReq;
@@ -250,6 +252,50 @@ bool StatusGrpcClientImpl::unbindUser(int uid)
     }
     LOGI(LogModule::Grpc, "unbindUser success uid={} err={}", uid, reply.error());
     return status.ok() && reply.error() == ErrorCodes::SUCCESS;
+}
+
+int StatusGrpcClientImpl::resolveToken(const std::string& token)
+{
+    const auto start = std::chrono::steady_clock::now();
+    ClientContext context;
+    ResolveTokenReq request;
+    ResolveTokenRsp reply;
+    request.set_token(token);
+
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        LOGE(LogModule::Grpc, "resolveToken: failed to get connection");
+        return 0;
+    }
+
+    Status status = stub->ResolveToken(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
+    if (!status.ok())
+    {
+        LOGE(LogModule::Grpc,
+             "resolveToken RPC failed code={} msg={} cost={}ms",
+             static_cast<int>(status.error_code()), status.error_message(), cost_ms);
+        return 0;
+    }
+
+    if (reply.error() != ErrorCodes::SUCCESS)
+    {
+        LOGW(LogModule::Grpc, "resolveToken failed token={} err={} cost={}ms", token,
+             reply.error(), cost_ms);
+        return 0;
+    }
+
+    LOGI(LogModule::Grpc, "resolveToken token={} uid={} cost={}ms", token, reply.uid(),
+         cost_ms);
+    return reply.uid();
 }
 
 int StatusGrpcClientImpl::validateToken(int uid, const std::string& token)

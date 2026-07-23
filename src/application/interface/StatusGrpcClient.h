@@ -34,6 +34,9 @@ public:
     // Token 验证接口
     virtual int validateToken(int uid, const std::string& token) = 0;
 
+    // 通过 token 解析 uid
+    virtual int resolveToken(const std::string& token) = 0;
+
     // 刷新登录 token TTL
     virtual bool refreshTokenTTL(int uid) = 0;
 
