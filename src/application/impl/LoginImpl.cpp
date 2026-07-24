@@ -40,7 +40,7 @@ void LoginImpl::handle(std::shared_ptr<CSession> session, const std::string& msg
     Json::Value root;
     reader.parse(msg_data, root);
 
-    // 支持 token-only 登录：优先取 token；uid 可由客户端传入，也可由 StatusServer 解析
+    // TCP 登录包只携带 token，uid 由 StatusServer 解析，避免客户端/服务端重复存储 uid->token 映射
     auto token = root["token"].asString();
     if (token.empty())
     {
@@ -51,17 +51,7 @@ void LoginImpl::handle(std::shared_ptr<CSession> session, const std::string& msg
         return;
     }
 
-    int uid = 0;
-    if (root.isMember("uid"))
-    {
-        uid = root["uid"].asInt();
-    }
-
-    if (uid <= 0)
-    {
-        uid = _status_client->resolveToken(token);
-    }
-
+    int uid = _status_client->resolveToken(token);
     if (uid <= 0)
     {
         LOGW(LogModule::Login, "login rejected: failed to resolve uid from token session={}",
